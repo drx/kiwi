@@ -20,6 +20,7 @@ unsigned int read_memory(unsigned int address)
     else if (range == 0xa0)
     {
         // Z80 space
+        return 0;
     }
     else if (range == 0xa1)
     {
@@ -51,6 +52,7 @@ void write_memory(unsigned int address, unsigned int value)
     else if (range == 0xa0)
     {
         // Z80 space
+        return;
     }
     else if (range == 0xa1)
     {
@@ -80,8 +82,17 @@ unsigned int m68k_read_memory_16(unsigned int address)
 {
     //printf("read(16, %x)\n", address);
 
-    unsigned int word = read_memory(address)<<8 | read_memory(address+1);
-    return word;
+    unsigned int range = (address & 0xff0000) >> 16;
+
+    if (range >= 0xc0 && range <= 0xdf)
+    {
+        vdp_read(address);
+    }
+    else
+    {
+        unsigned int word = read_memory(address)<<8 | read_memory(address+1);
+        return word;
+    }
 }
 unsigned int m68k_read_memory_32(unsigned int address)
 {

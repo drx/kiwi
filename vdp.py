@@ -1,7 +1,8 @@
-class VDP():
-    def __init__(self):
-        self.status = 0
+from ctypes import *
 
+md = CDLL('megadrive.so')
+
+class VDP(object):
     def init(self):
         '''
         app = QApplication(sys.argv)
@@ -24,7 +25,17 @@ class VDP():
         clock.show()
         app.exec_()
         '''
+        self.status = 0x3400
         print 'init vdp'
+
+    @property
+    def status(self):
+        value = md.vdp_get_status()
+        return value
+
+    @status.setter
+    def status(self, value):
+        md.vdp_set_status(value)
 
     def lines(self):
         return xrange(224)
@@ -44,3 +55,6 @@ class VDP():
     def clear_vblank(self):
         self.status &= 0xfff7
         self.status |= 0x80
+
+    def get_hint_counter(self):
+        return md.vdp_get_reg(10)

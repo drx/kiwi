@@ -175,6 +175,10 @@
 
 #endif /* M68K_COMPILE_FOR_MAME */
 
+#define m68k_read_disassembler_8 m68k_read_memory_8
+#define m68k_read_disassembler_16 m68k_read_memory_16
+#define m68k_read_disassembler_32 m68k_read_memory_32
+
 
 /* ======================================================================== */
 /* ============================== END OF FILE ============================= */
