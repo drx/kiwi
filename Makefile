@@ -1,0 +1,35 @@
+CC =     gcc
+WARNINGS = -Wall -pedantic
+CFLAGS = $(WARNINGS) -c -Im68k -I.
+
+all: megadrive.so
+
+clean:
+
+megadrive.so: m68k/m68kcpu.o m68k/m68kops.o m68k/m68kopac.o m68k/m68kopdm.o m68k/m68kopnz.o megadrive.o vdp.o
+		$(CC) m68k/m68kcpu.o m68k/m68kops.o m68k/m68kopac.o m68k/m68kopdm.o m68k/m68kopnz.o megadrive.o vdp.o -shared -o megadrive.so
+
+%.o: %.c
+		$(CC) $(CFLAGS) $^ -o $@
+
+m68k/m68kcpu.o: m68k/m68kops.h m68k/m68k.h m68k/m68kconf.h
+		$(CC) $(CFLAGS) m68k/m68kcpu.c -o m68k/m68kcpu.o
+
+m68k/m68kops.o: m68k/m68kmake m68k/m68kops.h m68k/m68kops.c m68k/m68k.h m68k/m68kconf.h
+		$(CC) $(CFLAGS) m68k/m68kops.c -o m68k/m68kops.o
+
+m68k/m68kopac.o: m68k/m68kmake m68k/m68kops.h m68k/m68kopac.c m68k/m68k.h m68k/m68kconf.h
+		$(CC) $(CFLAGS) m68k/m68kopac.c -o m68k/m68kopac.o
+
+m68k/m68kopdm.o: m68k/m68kmake m68k/m68kops.h m68k/m68kopdm.c m68k/m68k.h m68k/m68kconf.h
+		$(CC) $(CFLAGS) m68k/m68kopdm.c -o m68k/m68kopdm.o
+
+m68k/m68kopnz.o: m68k/m68kmake m68k/m68kops.h m68k/m68kopnz.c m68k/m68k.h m68k/m68kconf.h
+		$(CC) $(CFLAGS) m68k/m68kopnz.c -o m68k/m68kopnz.o
+
+m68k/m68kops.h: m68k/m68kmake
+		m68k/m68kmake m68k m68k/m68k_in.c
+
+m68k/m68kmake: m68k/m68kmake.c m68k/m68k_in.c
+		$(CC) $(WARNINGS) m68k/m68kmake.c -o m68k/m68kmake
+
