@@ -1,9 +1,6 @@
 from ctypes import *
 from vdp import VDP
 
-CLOCK_NTSC = 53693175
-CPL_M68K = int(CLOCK_NTSC / 7.0 / 60.0 / 262.0)
-
 md = CDLL('megadrive.so')
 vdp = VDP()
 
@@ -12,35 +9,6 @@ md.set_rom(c_char_p(rom), len(rom))
 md.m68k_pulse_reset()
 
 vdp.init()
-
-def frame():
-    vdp.status &= 0xfff7
-    hint_counter = vdp.get_hint_counter()
-
-    for line in vdp.lines():
-        vdp.set_hblank()
-        md.m68k_execute(CPL_M68K - 404)
-        vdp.clear_hblank()
-
-        hint_counter -= 1
-        if hint_counter < 0:
-            hint_counter = vdp.get_hint_counter()
-            md.m68k_set_irq(4)
-
-        md.vdp_render_line(line)
-
-        md.m68k_execute(CPL_M68K)
-
-    vdp.set_vblank()
-    md.m68k_execute(CPL_M68K - 360)
-    vdp.clear_vblank()
-
-    for line in vdp.invisible_lines():
-        vdp.set_hblank()
-        md.m68k_execute(CPL_M68K - 404)
-        vdp.clear_hblank()
-
-        md.m68k_execute(CPL_M68K)
 
 
 def m68k_status():
@@ -153,7 +121,7 @@ class Display(QWidget):
             super(Display, self).keyReleaseEvent(self, event)
 
     def frame(self):
-        frame()
+        md.frame()
         self.frames += 1
         self.palette_debug.update()
 

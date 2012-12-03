@@ -4,14 +4,14 @@
 unsigned char VRAM[0x10000];
 unsigned short CRAM[0x40];
 unsigned short VSRAM[40];
-unsigned char regs[0x20];
+unsigned char vdp_reg[0x20];
 
 unsigned char *screen;
 
 int control_code = 0;
 int control_address = 0;
 int control_pending = 0;
-unsigned int status = 0;
+unsigned int vdp_status = 0;
 
 int screen_width = 320;
 int screen_height = 224;
@@ -27,21 +27,21 @@ void vdp_render_line(int line)
 {
     int h_cells = 32, v_cells = 32;
 
-    switch (regs[16] & 3)
+    switch (vdp_reg[16] & 3)
     {
         case 0: h_cells = 32; break;
         case 1: h_cells = 64; break;
         case 2: h_cells = 128; break;
     }
-    switch ((regs[16]>>4) & 3)
+    switch ((vdp_reg[16]>>4) & 3)
     {
         case 0: v_cells = 32; break;
         case 1: v_cells = 64; break;
         case 2: v_cells = 128; break;
     }
 
-    int hscroll_type = regs[11]&3;
-    unsigned char *hscroll_table = &VRAM[regs[13]<<10];
+    int hscroll_type = vdp_reg[11]&3;
+    unsigned char *hscroll_table = &VRAM[vdp_reg[13]<<10];
     unsigned int hscroll_mask;
     switch (hscroll_type)
     {
@@ -52,16 +52,16 @@ void vdp_render_line(int line)
     }
     for (int i=0; i<screen_width; i++)
     {
-        set_pixel(screen, line*screen_width+i, regs[7]&0x3f);
+        set_pixel(screen, line*screen_width+i, vdp_reg[7]&0x3f);
     }
 
     for (int scroll_i = 0; scroll_i<2; scroll_i++)
     {
         unsigned char *scroll;
         if (scroll_i == 0)
-            scroll = &VRAM[regs[4]<<13];
+            scroll = &VRAM[vdp_reg[4]<<13];
         else
-            scroll = &VRAM[regs[2]<<10];
+            scroll = &VRAM[vdp_reg[2]<<10];
 
         short hscroll = (hscroll_table[((line & hscroll_mask))*4+(scroll_i^1)*2]<<8)
                                 | hscroll_table[((line & hscroll_mask))*4+(scroll_i^1)*2+1];
@@ -112,11 +112,11 @@ void vdp_debug_status(char *s)
     int i = 0;
     s[0] = 0;
     s += sprintf(s, "VDP: ");
-    s += sprintf(s, "%04x ", status);
+    s += sprintf(s, "%04x ", vdp_status);
     for (i = 0; i < 0x20; i++)
     {
         if (!(i%16)) s += sprintf(s, "\n");
-        s += sprintf(s, "%02x ", regs[i]);
+        s += sprintf(s, "%02x ", vdp_reg[i]);
     }
 }
 
@@ -169,14 +169,14 @@ void vdp_data_port_write(unsigned int value)
 
 void vdp_set_reg(int reg, unsigned char value)
 {
-    regs[reg] = value;
+    vdp_reg[reg] = value;
 
     control_code = 0;
 }
 
 unsigned int vdp_get_reg(int reg)
 {
-    return regs[reg];
+    return vdp_reg[reg];
 }
 
 int dma_length;
@@ -206,11 +206,11 @@ void vdp_control_write(unsigned int value)
         control_address = (control_address & 0x3fff) | ((value & 3) << 14); 
         control_pending = 0;
 
-        if ((control_code & 0x20) && (regs[1] & 0x10) && (regs[23] & 0x80) == 0)
+        if ((control_code & 0x20) && (vdp_reg[1] & 0x10) && (vdp_reg[23] & 0x80) == 0)
         {
             // DMA
-            dma_length = regs[19] | (regs[20] << 8);
-            dma_source = (regs[21]<<1) | (regs[22]<<9) | (regs[23]<<17);
+            dma_length = vdp_reg[19] | (vdp_reg[20] << 8);
+            dma_source = (vdp_reg[21]<<1) | (vdp_reg[22]<<9) | (vdp_reg[23]<<17);
 
             unsigned int word;
             enum ram_type type;
@@ -232,7 +232,7 @@ void vdp_control_write(unsigned int value)
                 word = m68k_read_memory_16(dma_source);
                 dma_source += 2;
                 vdp_data_write(word, type, 1);
-                control_address += regs[15];
+                control_address += vdp_reg[15];
             }
         }
     }
@@ -266,7 +266,7 @@ unsigned int vdp_read(unsigned int address)
     }
     else if (address >= 0x04 && address < 0x08)
     {
-        return status;
+        return vdp_status;
     }
     else
     {
@@ -277,8 +277,8 @@ unsigned int vdp_read(unsigned int address)
 
 void vdp_set_status(unsigned int value)
 {
-    unsigned int change = status^value;
-    status = value;
+    unsigned int change = vdp_status^value;
+    vdp_status = value;
 
     if (change & 8)
     {
@@ -291,10 +291,27 @@ void vdp_set_status(unsigned int value)
 
 unsigned int vdp_get_status()
 {
-    return status;
+    return vdp_status;
 }
 
 unsigned short vdp_get_cram(int index)
 {
     return CRAM[index & 0x3f];
+}
+
+void vdp_set_hblank()
+{
+    vdp_status |= 4;
+}
+void vdp_clear_hblank()
+{
+    vdp_status &= ~4;
+}
+void vdp_set_vblank()
+{
+    vdp_status |= 8;
+}
+void vdp_clear_vblank()
+{
+    vdp_status &= ~8;
 }

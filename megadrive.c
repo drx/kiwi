@@ -3,6 +3,9 @@
 unsigned char ROM[0x400000];
 unsigned char RAM[0x10000];
 
+const int CLOCK_NTSC = 53693175;
+const int CPL_M68K = (int)((double)CLOCK_NTSC / 7.0 / 60.0 / 262.0);
+
 void set_rom(unsigned char *buffer, size_t size)
 {
     memcpy(ROM, buffer, size);
@@ -143,4 +146,44 @@ void m68k_write_memory_32(unsigned int address, unsigned int value)
     m68k_write_memory_16(address+2, (value)&0xffff);
 
     return;
+}
+
+void frame()
+{
+    extern unsigned char vdp_reg[0x20];
+    extern unsigned int vdp_status;
+    vdp_status &= 0xfff7;
+    int hint_counter = vdp_reg[10];
+    int line;
+    for (line=0; line < 224; line++)
+    {
+        vdp_set_hblank();
+        m68k_execute(CPL_M68K - 404);
+        vdp_clear_hblank();
+
+        hint_counter--;
+        if (hint_counter < 0)
+        {
+            hint_counter = vdp_reg[10];
+            m68k_set_irq(4);
+        }
+
+        vdp_render_line(line);
+
+        m68k_execute(CPL_M68K);
+    }
+
+    vdp_set_vblank();
+    m68k_execute(CPL_M68K - 360);
+    vdp_clear_vblank();
+
+    for (;line < 262; line++)
+    {
+        vdp_set_hblank();
+        m68k_execute(CPL_M68K - 404);
+        vdp_clear_hblank();
+        m68k_set_irq(6);
+
+        m68k_execute(CPL_M68K);
+    }
 }
