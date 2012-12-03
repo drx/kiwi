@@ -8,8 +8,9 @@ rom = open('sonic.bin', 'r').read()
 md.set_rom(c_char_p(rom), len(rom))
 md.m68k_pulse_reset()
 
-vdp.init()
-
+md.vdp_set_status(0x3400)
+screen_buffer = create_string_buffer(320*224*3)
+md.vdp_set_screen(screen_buffer)
 
 def m68k_status():
     registers = ['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7',
@@ -22,13 +23,13 @@ def m68k_status():
         if reg_i%4 == 0:
             status += '\n'
         value = md.m68k_get_reg(0, reg_i)
-        status += '{0}={1:08x} '.format(register, value)
+        status += '{0}={1:08x} '.format(register, value&0xffffffff)
         if register == 'pc':
             pc = value
 
     disasm = create_string_buffer(1024)
     md.m68k_disassemble(disasm, pc, 1)
-    status = '{}\n{}'.format(disasm.value, status)
+    status = '{}\n{}'.format(disasm.value.lower(), status)
 
     return status
 
@@ -85,16 +86,11 @@ class Display(QWidget):
 
         self.palette_debug = PaletteDebug()
 
-        #start
-        self.label = QLabel("Hello World")
-        #screen = md.vdp_get_screen()
-        #print screen
+        self.label = QLabel("")
         self.label.show()
-        #end
 
         self.frame()
         self.setWindowTitle("emu pie")
-        #self.resize(320*3, 224*3)
         self.debug.resize(320, 224)
 
         layout = QGridLayout()
@@ -105,8 +101,6 @@ class Display(QWidget):
         layout.setRowMinimumHeight(1, 100)
         layout.setColumnMinimumWidth(1, 224)
         self.setLayout(layout)
-
-        self.keys = ''
 
     def keyPressEvent(self, event):
         try:
@@ -125,15 +119,14 @@ class Display(QWidget):
         self.frames += 1
         self.palette_debug.update()
 
-        ppm = 'P6 320 224 255 '+vdp.screen.raw
+        ppm = 'P6 320 224 255 '+screen_buffer.raw
         p = QPixmap()
         p.loadFromData(QByteArray(ppm))
         self.label.setPixmap(p)
 
-        if self.frames % 4 == 0:
-            vdp_status = create_string_buffer(1024)
-            md.vdp_debug_status(vdp_status)
-            self.debug.setText('{}\nFrame: {}\n\n{}\n\n{}'.format(self.keys, self.frames, vdp_status.value, m68k_status()))
+        vdp_status = create_string_buffer(1024)
+        md.vdp_debug_status(vdp_status)
+        self.debug.setText('Frame: {}\n\n{}\n\n{}'.format(self.frames, vdp_status.value, m68k_status()))
 
 
 app = QApplication(sys.argv)

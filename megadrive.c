@@ -32,6 +32,7 @@ unsigned int read_memory(unsigned int address)
         {
             return io_read_memory(address & 0x1f);
         }
+        return 0;
     }
     else if (range >= 0xc0 && range <= 0xdf)
     {
@@ -69,10 +70,12 @@ void write_memory(unsigned int address, unsigned int value)
             io_write_memory(address & 0x1f, value);
             return;
         }
+        return;
     }
     else if (range >= 0xc0 && range <= 0xdf)
     {
         // VDP
+        return;
     }
     else if (range >= 0xe0 && range <= 0xff)
     {

@@ -16,6 +16,11 @@ unsigned int vdp_status = 0;
 int screen_width = 320;
 int screen_height = 224;
 
+int dma_length;
+unsigned int dma_source;
+int dma_fill = 0;
+
+
 #define set_pixel(scr, pixel, index) \
     do {\
         scr[(pixel)*3] = (CRAM[index]<<4)&0xe0; \
@@ -50,6 +55,13 @@ void vdp_render_line(int line)
         case 0x02: hscroll_mask = 0xfff8; break;
         case 0x03: hscroll_mask = 0xffff; break;
     }
+
+    unsigned char vscroll_mask;
+    if (vdp_reg[11]&4)
+        vscroll_mask = 0xfff0;
+    else
+        vscroll_mask = 0x0000;
+
     for (int i=0; i<screen_width; i++)
     {
         set_pixel(screen, line*screen_width+i, vdp_reg[7]&0x3f);
@@ -67,7 +79,9 @@ void vdp_render_line(int line)
                                 | hscroll_table[((line & hscroll_mask))*4+(scroll_i^1)*2+1];
         for (int column = 0; column < 320; column++)
         {
-            int cell_line = line >> 3;
+            short vscroll = VSRAM[(column & vscroll_mask)/4+(scroll_i^1)] & 0x3ff;
+            int e_line = (line+vscroll)&(v_cells*8-1);
+            int cell_line = e_line >> 3;
             int e_column = (column-hscroll)&(h_cells*8-1);
             int cell_column = e_column >> 3;
             int cell = (scroll[(cell_line*h_cells+cell_column)*2]<<8)
@@ -76,9 +90,9 @@ void vdp_render_line(int line)
 
             int pattern_index = 0;
             if (cell & 0x1000)  // v flip
-                pattern_index = (7-(line&7))*4;
+                pattern_index = (7-(e_line&7))*4;
             else
-                pattern_index = (line&7)*4; 
+                pattern_index = (e_line&7)*4; 
 
             if (cell & 0x800)  // h flip
                 pattern_index += (7-(e_column&7))/2;
@@ -165,6 +179,17 @@ void vdp_data_port_write(unsigned int value)
     }
     control_address += 2;
     control_pending = 0;
+
+    if (dma_fill)
+    {
+        dma_fill = 0;
+        dma_length = vdp_reg[19] | (vdp_reg[20] << 8);
+        while (dma_length--)
+        {
+            VRAM[control_address] = value >> 8;
+            control_address += vdp_reg[15];
+        }
+    }
 }
 
 void vdp_set_reg(int reg, unsigned char value)
@@ -178,9 +203,6 @@ unsigned int vdp_get_reg(int reg)
 {
     return vdp_reg[reg];
 }
-
-int dma_length;
-unsigned int dma_source;
 
 void vdp_control_write(unsigned int value)
 {
@@ -208,31 +230,39 @@ void vdp_control_write(unsigned int value)
 
         if ((control_code & 0x20) && (vdp_reg[1] & 0x10) && (vdp_reg[23] & 0x80) == 0)
         {
-            // DMA
-            dma_length = vdp_reg[19] | (vdp_reg[20] << 8);
-            dma_source = (vdp_reg[21]<<1) | (vdp_reg[22]<<9) | (vdp_reg[23]<<17);
+            if ((vdp_reg[23] >> 6) == 2)
+            {
+                // DMA fill
+                dma_fill = 1;
+            }
+            else 
+            {
+                // DMA 68k -> VDP
+                dma_length = vdp_reg[19] | (vdp_reg[20] << 8);
+                dma_source = (vdp_reg[21]<<1) | (vdp_reg[22]<<9) | (vdp_reg[23]<<17);
 
-            unsigned int word;
-            enum ram_type type;
-            if ((control_code & 0x7) == 1)
-            {
-                type = T_VRAM;
-            }
-            else if ((control_code & 0x7) == 3)
-            {
-                type = T_CRAM;
-            }
-            else if ((control_code & 0x7) == 5)
-            {
-                type = T_VSRAM;
-            }
+                unsigned int word;
+                enum ram_type type;
+                if ((control_code & 0x7) == 1)
+                {
+                    type = T_VRAM;
+                }
+                else if ((control_code & 0x7) == 3)
+                {
+                    type = T_CRAM;
+                }
+                else if ((control_code & 0x7) == 5)
+                {
+                    type = T_VSRAM;
+                }
 
-            while (dma_length--)
-            {
-                word = m68k_read_memory_16(dma_source);
-                dma_source += 2;
-                vdp_data_write(word, type, 1);
-                control_address += vdp_reg[15];
+                while (dma_length--)
+                {
+                    word = m68k_read_memory_16(dma_source);
+                    dma_source += 2;
+                    vdp_data_write(word, type, 1);
+                    control_address += vdp_reg[15];
+                }
             }
         }
     }

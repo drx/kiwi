@@ -47,7 +47,6 @@ unsigned char pad_read(int pad)
     {
         value &= ~(0xc | (button_state[pad] & 3) | ((button_state[pad] >> 2) & 0x30));
     }
-    printf("pad_read(%d) = %x\n", pad, value);
     return value;
 }
 
