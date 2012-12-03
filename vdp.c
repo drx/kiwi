@@ -13,6 +13,9 @@ int control_address = 0;
 int control_pending = 0;
 unsigned int status = 0;
 
+int screen_width = 320;
+int screen_height = 224;
+
 #define set_pixel(scr, pixel, index) \
     do {\
         scr[(pixel)*3] = (CRAM[index]<<4)&0xe0; \
@@ -46,6 +49,10 @@ void vdp_render_line(int line)
         case 0x01: hscroll_mask = 0x0007; break;
         case 0x02: hscroll_mask = 0xfff8; break;
         case 0x03: hscroll_mask = 0xffff; break;
+    }
+    for (int i=0; i<screen_width; i++)
+    {
+        set_pixel(screen, line*screen_width+i, regs[7]&0x3f);
     }
 
     for (int scroll_i = 0; scroll_i<2; scroll_i++)
@@ -85,23 +92,14 @@ void vdp_render_line(int line)
             if (color_index)
             {
                 color_index += (cell & 0x6000)>>9;
-                set_pixel(screen, line*512+column, color_index);
+                set_pixel(screen, line*screen_width+column, color_index);
             }
         }
     }
 }
 
-void vdp_render_all()
+void vdp_render_backdrop()
 {
-    for (int i=0; i<(512*512); i++)
-    {
-        set_pixel(screen, i, regs[7]&0x3f);
-    }
-
-    for (int line=0; line<224; line++)
-    {
-        vdp_render_line(line);
-    }
 }
 
 void vdp_set_screen(unsigned char* buf)
@@ -113,10 +111,11 @@ void vdp_debug_status(char *s)
 {
     int i = 0;
     s[0] = 0;
-    s += sprintf(s, "VDP regs: ");
+    s += sprintf(s, "VDP: ");
     s += sprintf(s, "%04x ", status);
     for (i = 0; i < 0x20; i++)
     {
+        if (!(i%16)) s += sprintf(s, "\n");
         s += sprintf(s, "%02x ", regs[i]);
     }
 }

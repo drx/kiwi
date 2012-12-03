@@ -27,7 +27,7 @@ def frame():
             hint_counter = vdp.get_hint_counter()
             md.m68k_set_irq(4)
 
-        #if visible: render_line
+        md.vdp_render_line(line)
 
         md.m68k_execute(CPL_M68K)
 
@@ -42,7 +42,6 @@ def frame():
 
         md.m68k_execute(CPL_M68K)
 
-    md.vdp_render_all()
 
 def m68k_status():
     registers = ['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7',
@@ -127,15 +126,16 @@ class Display(QWidget):
 
         self.frame()
         self.setWindowTitle("emu pie")
-        self.resize(320*3, 224*3)
+        #self.resize(320*3, 224*3)
         self.debug.resize(320, 224)
 
         layout = QGridLayout()
-        layout.addWidget(self.debug, 0, 0, 1, 2)
+        layout.addWidget(self.debug, 0, 0)
         layout.addWidget(self.palette_debug, 1, 0)
-        layout.addWidget(self.label, 1, 1)
-        layout.setRowMinimumHeight(1, 512)
-        layout.setColumnMinimumWidth(1, 512)
+        layout.addWidget(self.label, 0, 1, 1, 2)
+        layout.setRowMinimumHeight(0, 320)
+        layout.setRowMinimumHeight(1, 100)
+        layout.setColumnMinimumWidth(1, 224)
         self.setLayout(layout)
 
         self.keys = ''
@@ -157,7 +157,7 @@ class Display(QWidget):
         self.frames += 1
         self.palette_debug.update()
 
-        ppm = 'P6 512 512 255 '+vdp.screen.raw
+        ppm = 'P6 320 224 255 '+vdp.screen.raw
         p = QPixmap()
         p.loadFromData(QByteArray(ppm))
         self.label.setPixmap(p)

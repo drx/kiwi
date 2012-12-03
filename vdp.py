@@ -26,7 +26,7 @@ class VDP(object):
         app.exec_()
         '''
         self.status = 0x3400
-        self.screen = create_string_buffer(512*512*3)
+        self.screen = create_string_buffer(320*224*3)
         md.vdp_set_screen(self.screen)
         print 'init vdp'
 
