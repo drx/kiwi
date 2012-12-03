@@ -1,10 +1,16 @@
+import sys
 from ctypes import *
 from vdp import VDP
 
 md = CDLL('megadrive.so')
 vdp = VDP()
 
-rom = open('sonic.bin', 'r').read()
+try:
+    rom_fn = sys.argv[1]
+except IndexError:
+    rom_fn = 'sonic.bin'
+
+rom = open(rom_fn, 'r').read()
 md.set_rom(c_char_p(rom), len(rom))
 md.m68k_pulse_reset()
 
