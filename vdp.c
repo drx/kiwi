@@ -27,6 +27,14 @@ void vdp_render_all()
         set_pixel(screen, i, regs[7]&0x3f);
     }
 
+    for (int line=0; line<224; line++)
+    {
+        vdp_render_line(line);
+    }
+}
+
+void vdp_render_line(int line)
+{
     int h_cells = 32, v_cells = 32;
 
     switch (regs[16] & 3)
@@ -61,31 +69,25 @@ void vdp_render_all()
         else
             scroll = &VRAM[regs[2]<<10];
 
-        for (int line = 0; line < 224; line++)
+        short hscroll = (hscroll_table[((line & hscroll_mask))*4+(scroll_i^1)*2]<<8)
+                                | hscroll_table[((line & hscroll_mask))*4+(scroll_i^1)*2+1];
+        for (int column = 0; column < 320; column++)
         {
-            short hscroll = (hscroll_table[((line & hscroll_mask))*4+(scroll_i^1)*2]<<8)
-                                    | hscroll_table[((line & hscroll_mask))*4+(scroll_i^1)*2+1];
-            for (int column = 0; column < 320; column++)
+            int cell_line = line >> 3;
+            int e_column = (column-hscroll)&(h_cells*8-1);
+            int cell_column = e_column >> 3;
+            int cell = (scroll[(cell_line*h_cells+cell_column)*2]<<8)
+                        | scroll[(cell_line*h_cells+cell_column)*2+1];
+            unsigned char *pattern = &VRAM[0x20*(cell&0x7ff)];
+
+            unsigned char color_index = pattern[(line&7)*4+(e_column&7)/2];
+            if (e_column&1) color_index &= 0xf;
+            else color_index >>= 4;
+
+            if (color_index)
             {
-                int cell_line = line >> 3;
-                int e_column = (column-hscroll)&(h_cells*8-1);
-                int cell_column = e_column >> 3;
-                int cell = (scroll[(cell_line*h_cells+cell_column)*2]<<8)
-                            | scroll[(cell_line*h_cells+cell_column)*2+1];
-                unsigned char *pattern = &VRAM[0x20*(cell&0x7ff)];
-
-                unsigned char color_index = pattern[(line&7)*4+(e_column&7)/2];
-                if (e_column&1) color_index &= 0xf;
-                else color_index >>= 4;
-
-                if (color_index)
-                {
-                    color_index += (cell & 0x6000)>>9;
-                    set_pixel(screen, line*512+column, color_index);
-                    //screen[(line*512+column)*3] = (CRAM[color_index]<<4)&0xe0;
-                    //screen[(line*512+column)*3+1] = (CRAM[color_index])&0xe0;
-                    //screen[(line*512+column)*3+2] = (CRAM[color_index]>>4)&0xe0;
-                }
+                color_index += (cell & 0x6000)>>9;
+                set_pixel(screen, line*512+column, color_index);
             }
         }
         printf("\n");
