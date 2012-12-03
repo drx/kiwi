@@ -1,6 +1,5 @@
 import sys
 from ctypes import *
-from vdp import VDP
 
 md = CDLL('megadrive.so')
 
