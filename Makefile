@@ -1,4 +1,4 @@
-CC =     gcc
+CC =     cc
 WARNINGS = -Wall -pedantic
 CFLAGS = $(WARNINGS) -c -Im68k -I.
 

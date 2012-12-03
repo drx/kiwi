@@ -69,7 +69,7 @@ void write_memory(unsigned int address, unsigned int value)
         return;
     }
     printf("write(%x, %x)\n", address, value);
-    return 0;
+    return;
 }
 
 unsigned int m68k_read_memory_8(unsigned int address)

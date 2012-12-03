@@ -52,6 +52,8 @@ def m68k_status():
     status = ''
     pc = 0
     for reg_i, register in enumerate(registers):
+        if reg_i%4 == 0:
+            status += '\n'
         value = md.m68k_get_reg(0, reg_i)
         status += '{0}={1:08x} '.format(register, value)
         if register == 'pc':
@@ -98,7 +100,7 @@ class Display(QWidget):
         timer.timeout.connect(self.frame)
         timer.start(16.667)
 
-        self.debug = QTextEdit()
+        self.debug = QLabel()
         self.debug.font = QFont("Menlo", 16)
         self.debug.setFont(self.debug.font)
 
@@ -116,9 +118,6 @@ class Display(QWidget):
         self.resize(320*3, 224*3)
         self.debug.resize(320, 224)
 
-
-
-
         layout = QGridLayout()
         layout.addWidget(self.debug, 0, 0, 1, 2)
         layout.addWidget(self.palette_debug, 1, 0)
@@ -126,6 +125,12 @@ class Display(QWidget):
         layout.setRowMinimumHeight(1, 512)
         layout.setColumnMinimumWidth(1, 512)
         self.setLayout(layout)
+
+        self.keys = ''
+
+    def keyPressEvent(self, event):
+        self.keys += ' {}'.format(event.key())
+        print 'lol'
 
 
     def frame(self):
@@ -141,7 +146,7 @@ class Display(QWidget):
         if self.frames % 4 == 0:
             vdp_status = create_string_buffer(1024)
             md.vdp_debug_status(vdp_status)
-            self.debug.setText('Frame: {}\n\n{}\n\n{}'.format(self.frames, vdp_status.value, m68k_status()))
+            self.debug.setText('{}\nFrame: {}\n\n{}\n\n{}'.format(self.keys, self.frames, vdp_status.value, m68k_status()))
 
 
 app = QApplication(sys.argv)
