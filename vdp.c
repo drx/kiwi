@@ -28,6 +28,32 @@ int dma_fill = 0;
         scr[(pixel)*3+2] = (CRAM[index]>>4)&0xe0; \
     } while(0);
 
+void draw_cell_pixel(unsigned int cell, int cell_x, int cell_y, int x, int y)
+{
+    unsigned char *pattern = &VRAM[0x20*(cell&0x7ff)];
+
+    int pattern_index = 0;
+    if (cell & 0x1000)  // v flip
+        pattern_index = (7-(cell_y&7))*4;
+    else
+        pattern_index = (cell_y&7)*4; 
+
+    if (cell & 0x800)  // h flip
+        pattern_index += (7-(cell_x&7))/2;
+    else
+        pattern_index += (cell_x&7)/2;
+
+    unsigned char color_index = pattern[pattern_index];
+    if ((cell_x&1)^(cell>>11)) color_index &= 0xf;
+    else color_index >>= 4;
+
+    if (color_index)
+    {
+        color_index += (cell & 0x6000)>>9;
+        set_pixel(screen, y*screen_width+x, color_index);
+    }
+}
+
 void vdp_render_line(int line)
 {
     int h_cells = 32, v_cells = 32;
@@ -86,34 +112,45 @@ void vdp_render_line(int line)
             int cell_column = e_column >> 3;
             int cell = (scroll[(cell_line*h_cells+cell_column)*2]<<8)
                         | scroll[(cell_line*h_cells+cell_column)*2+1];
-            unsigned char *pattern = &VRAM[0x20*(cell&0x7ff)];
 
-            int pattern_index = 0;
-            if (cell & 0x1000)  // v flip
-                pattern_index = (7-(e_line&7))*4;
-            else
-                pattern_index = (e_line&7)*4; 
-
-            if (cell & 0x800)  // h flip
-                pattern_index += (7-(e_column&7))/2;
-            else
-                pattern_index += (e_column&7)/2;
-
-            unsigned char color_index = pattern[pattern_index];
-            if ((e_column&1)^(cell>>11)) color_index &= 0xf;
-            else color_index >>= 4;
-
-            if (color_index)
-            {
-                color_index += (cell & 0x6000)>>9;
-                set_pixel(screen, line*screen_width+column, color_index);
-            }
+            draw_cell_pixel(cell, e_column, e_line, column, line);
         }
     }
 }
 
-void vdp_render_backdrop()
+void vdp_render_sprite(int sprite)
 {
+    unsigned char *sprite_table = &VRAM[vdp_reg[5] << 9];
+
+    unsigned int cell = sprite_table[sprite*8+4];
+    for (int x=0; x<8; x++)
+    {
+        for (int y=0; y<8; y++)
+        {
+            draw_cell_pixel(cell, x, y, x*(sprite&15), y*(sprite>>4));
+        }
+    }
+
+}
+
+void vdp_render_sprites()
+{
+    unsigned char *sprite_table = &VRAM[vdp_reg[5] << 9];
+
+    int cur_sprite = 0;
+    while (1)
+    {
+        vdp_render_sprite(cur_sprite);
+        /*printf("%d: ", cur_sprite);
+        for (int j=0; j<8; j++)
+            printf("%x ", sprite_table[cur_sprite*8+j]);
+        printf("\n");*/
+
+        cur_sprite = sprite_table[cur_sprite*8+3];
+        if (!cur_sprite)
+            break;
+
+    }
 }
 
 void vdp_set_screen(unsigned char* buf)
