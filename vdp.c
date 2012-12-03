@@ -32,7 +32,15 @@ void vdp_render_all()
     }
 
     int hscroll_type = regs[11]&3;
-    printf("%d\n", hscroll_type);
+    unsigned char *hscroll_table = &VRAM[regs[13]<<10];
+    unsigned int hscroll_mask;
+    switch (hscroll_type)
+    {
+        case 0x00: hscroll_mask = 0x0000; break;
+        case 0x01: hscroll_mask = 0x0007; break;
+        case 0x02: hscroll_mask = 0xfff8; break;
+        case 0x03: hscroll_mask = 0xffff; break;
+    }
 
     for (int scroll_i = 0; scroll_i<2; scroll_i++)
     {
@@ -41,33 +49,34 @@ void vdp_render_all()
             scroll = &VRAM[regs[4]<<13];
         else
             scroll = &VRAM[regs[2]<<10];
-        for (int cell_line = 0; cell_line < v_cells; cell_line++)
+
+        for (int line = 0; line < 224; line++)
         {
-            for (int cell_column = 0; cell_column < h_cells; cell_column ++)
+            short hscroll = (hscroll_table[((line & hscroll_mask))*4+(scroll_i^1)*2]<<8)
+                                    | hscroll_table[((line & hscroll_mask))*4+(scroll_i^1)*2+1];
+            for (int column = 0; column < 320; column++)
             {
+                int cell_line = line >> 3;
+                int e_column = (column-hscroll)&(h_cells*8-1);
+                int cell_column = e_column >> 3;
                 int cell = (scroll[(cell_line*h_cells+cell_column)*2]<<8)
                             | scroll[(cell_line*h_cells+cell_column)*2+1];
                 unsigned char *pattern = &VRAM[0x20*(cell&0x7ff)];
 
-                for (int line = 0; line < 8; line++)
-                {
-                    for (int column = 0; column < 8; column++)
-                    {
-                        int color_index = pattern[line*4+column/2];
-                        if (column&1) color_index &= 0xf;
-                        else color_index >>= 4;
+                int color_index = pattern[(line&7)*4+(e_column&7)/2];
+                if (e_column&1) color_index &= 0xf;
+                else color_index >>= 4;
 
-                        if (color_index)
-                        {
-                            color_index += (cell & 0x6000)>>9;
-                            screen[((cell_line*8+line)*512+cell_column*8+column)*3] = (CRAM[color_index]<<3)&0xe0;
-                            screen[((cell_line*8+line)*512+cell_column*8+column)*3+1] = (CRAM[color_index]>>1)&0xe0;
-                            screen[((cell_line*8+line)*512+cell_column*8+column)*3+2] = (CRAM[color_index]>>5)&0xe0;
-                        }
-                    }
+                if (color_index)
+                {
+                    color_index += (cell & 0x6000)>>9;
+                    screen[(line*512+column)*3] = (CRAM[color_index]<<4)&0xe0;
+                    screen[(line*512+column)*3+1] = (CRAM[color_index])&0xe0;
+                    screen[(line*512+column)*3+2] = (CRAM[color_index]>>4)&0xe0;
                 }
             }
         }
+        printf("\n");
     }
 }
 
