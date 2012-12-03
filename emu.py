@@ -3,7 +3,6 @@ from ctypes import *
 from vdp import VDP
 
 md = CDLL('megadrive.so')
-vdp = VDP()
 
 try:
     rom_fn = sys.argv[1]
