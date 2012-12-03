@@ -25,6 +25,10 @@ unsigned int read_memory(unsigned int address)
     else if (range == 0xa1)
     {
         // I/O and registers
+        if (address >= 0xa10000 && address < 0xa10020)
+        {
+            return io_read_memory(address & 0x1f);
+        }
     }
     else if (range >= 0xc0 && range <= 0xdf)
     {
@@ -57,6 +61,11 @@ void write_memory(unsigned int address, unsigned int value)
     else if (range == 0xa1)
     {
         // I/O and registers
+        if (address >= 0xa10000 && address < 0xa10020)
+        {
+            io_write_memory(address & 0x1f, value);
+            return;
+        }
     }
     else if (range >= 0xc0 && range <= 0xdf)
     {

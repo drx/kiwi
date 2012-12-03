@@ -90,6 +90,18 @@ class PaletteDebug(QWidget):
 
         qp.end()
 
+buttons = ['up', 'down', 'left', 'right', 'b', 'c', 'a', 'start']
+keymap = {
+        Qt.Key_Left: 'left',
+        Qt.Key_Right: 'right',
+        Qt.Key_Up: 'up',
+        Qt.Key_Down: 'down',
+        Qt.Key_Z: 'a',
+        Qt.Key_X: 'b',
+        Qt.Key_C: 'c',
+        Qt.Key_Q: 'start',
+        }
+
 class Display(QWidget):
     def __init__(self, parent=None):
         super(Display, self).__init__(parent)
@@ -129,9 +141,16 @@ class Display(QWidget):
         self.keys = ''
 
     def keyPressEvent(self, event):
-        self.keys += ' {}'.format(event.key())
-        print 'lol'
-
+        try:
+            md.pad_press_button(0, buttons.index(keymap[event.key()]))
+        except KeyError:
+            super(Display, self).keyPressEvent(self, event)
+        
+    def keyReleaseEvent(self, event):
+        try:
+            md.pad_release_button(0, buttons.index(keymap[event.key()]))
+        except KeyError:
+            super(Display, self).keyReleaseEvent(self, event)
 
     def frame(self):
         frame()
