@@ -13,9 +13,20 @@ int control_address = 0;
 int control_pending = 0;
 unsigned int status = 0;
 
+#define set_pixel(scr, pixel, index) \
+    do {\
+        scr[(pixel)*3] = (CRAM[index]<<4)&0xe0; \
+        scr[(pixel)*3+1] = (CRAM[index])&0xe0; \
+        scr[(pixel)*3+2] = (CRAM[index]>>4)&0xe0; \
+    } while(0);
+
 void vdp_render_all()
 {
-    memset(screen, 0, 512*512*3);
+    for (int i=0; i<(512*512); i++)
+    {
+        set_pixel(screen, i, regs[7]&0x3f);
+    }
+
     int h_cells = 32, v_cells = 32;
 
     switch (regs[16] & 3)
@@ -63,16 +74,17 @@ void vdp_render_all()
                             | scroll[(cell_line*h_cells+cell_column)*2+1];
                 unsigned char *pattern = &VRAM[0x20*(cell&0x7ff)];
 
-                int color_index = pattern[(line&7)*4+(e_column&7)/2];
+                unsigned char color_index = pattern[(line&7)*4+(e_column&7)/2];
                 if (e_column&1) color_index &= 0xf;
                 else color_index >>= 4;
 
                 if (color_index)
                 {
                     color_index += (cell & 0x6000)>>9;
-                    screen[(line*512+column)*3] = (CRAM[color_index]<<4)&0xe0;
-                    screen[(line*512+column)*3+1] = (CRAM[color_index])&0xe0;
-                    screen[(line*512+column)*3+2] = (CRAM[color_index]>>4)&0xe0;
+                    set_pixel(screen, line*512+column, color_index);
+                    //screen[(line*512+column)*3] = (CRAM[color_index]<<4)&0xe0;
+                    //screen[(line*512+column)*3+1] = (CRAM[color_index])&0xe0;
+                    //screen[(line*512+column)*3+2] = (CRAM[color_index]>>4)&0xe0;
                 }
             }
         }
