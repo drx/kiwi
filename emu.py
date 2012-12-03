@@ -42,6 +42,8 @@ def frame():
 
         md.m68k_execute(CPL_M68K)
 
+    md.vdp_render_all()
+
 def m68k_status():
     registers = ['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7',
             'a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7',
@@ -65,7 +67,28 @@ import sys
 from PySide.QtCore import *
 from PySide.QtGui import *
 
-class Display(QTextEdit):
+class PaletteDebug(QWidget):
+    def __init__(self):
+        super(PaletteDebug, self).__init__()
+        self.show()
+        
+    def paintEvent(self, e):
+        qp = QPainter()
+        qp.begin(self)
+        color = QColor(0, 0, 0, 0)
+        qp.setPen(color)
+
+        for y in range(4):
+            for x in range(16):
+                color = md.vdp_get_cram(y*16+x)
+                red, green, blue = color >> 8, color >> 4, color
+                red, green, blue = (blue&15)*16, (green&15)*16, (red&15)*16
+                qp.setBrush(QColor(red, green, blue))
+                qp.drawRect(x*16, y*16, 16, 16)
+
+        qp.end()
+
+class Display(QWidget):
     def __init__(self, parent=None):
         super(Display, self).__init__(parent)
 
@@ -75,22 +98,51 @@ class Display(QTextEdit):
         timer.timeout.connect(self.frame)
         timer.start(16.667)
 
-        self.font = QFont("Menlo", 16)
-        self.setFont(self.font)
+        self.debug = QTextEdit()
+        self.debug.font = QFont("Menlo", 16)
+        self.debug.setFont(self.debug.font)
+
+        self.palette_debug = PaletteDebug()
+
+        #start
+        self.label = QLabel("Hello World")
+        #screen = md.vdp_get_screen()
+        #print screen
+        self.label.show()
+        #end
 
         self.frame()
         self.setWindowTitle("emu pie")
-        self.resize(320*2, 224*2)
+        self.resize(320*3, 224*3)
+        self.debug.resize(320, 224)
+
+
+
+
+        layout = QGridLayout()
+        layout.addWidget(self.debug, 0, 0, 1, 2)
+        layout.addWidget(self.palette_debug, 1, 0)
+        layout.addWidget(self.label, 1, 1)
+        layout.setRowMinimumHeight(1, 512)
+        layout.setColumnMinimumWidth(1, 512)
+        self.setLayout(layout)
 
 
     def frame(self):
         frame()
         self.frames += 1
+        self.palette_debug.update()
+
+        ppm = 'P6 512 512 255 '+vdp.screen.raw
+        p = QPixmap()
+        p.loadFromData(QByteArray(ppm))
+        self.label.setPixmap(p)
 
         if self.frames % 4 == 0:
             vdp_status = create_string_buffer(1024)
             md.vdp_debug_status(vdp_status)
-            self.setText('Frame: {}\n\n{}\n\n{}'.format(self.frames, vdp_status.value, m68k_status()))
+            self.debug.setText('Frame: {}\n\n{}\n\n{}'.format(self.frames, vdp_status.value, m68k_status()))
+
 
 app = QApplication(sys.argv)
 display = Display()
