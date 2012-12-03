@@ -74,6 +74,18 @@ keymap = {
         Qt.Key_Q: 'start',
         }
 
+def blit_screen(label):
+    ppm = 'P6 320 224 255 '+screen_buffer.raw
+
+    qba = QByteArray()
+    qba.setRawData(ppm, len(ppm))
+
+    pixmap = QPixmap()
+    pixmap.loadFromData(qba)
+    label.setPixmap(pixmap)
+
+    del qba
+
 class Display(QWidget):
     def __init__(self, parent=None):
         super(Display, self).__init__(parent)
@@ -93,6 +105,7 @@ class Display(QWidget):
         self.label = QLabel("")
         self.label.show()
 
+        self.qba = QByteArray()
         self.frame()
         self.setWindowTitle("emu pie")
         self.debug.resize(320, 224)
@@ -123,10 +136,7 @@ class Display(QWidget):
         self.frames += 1
         self.palette_debug.update()
 
-        ppm = 'P6 320 224 255 '+screen_buffer.raw
-        p = QPixmap()
-        p.loadFromData(QByteArray(ppm))
-        self.label.setPixmap(p)
+        blit_screen(self.label)
 
         vdp_status = create_string_buffer(1024)
         md.vdp_debug_status(vdp_status)
