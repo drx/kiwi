@@ -9,9 +9,9 @@ unsigned char vdp_reg[0x20];
 unsigned char *screen;
 
 int control_code = 0;
-int control_address = 0;
+unsigned int control_address = 0;
 int control_pending = 0;
-unsigned int vdp_status = 0;
+unsigned int vdp_status = 0x3400;
 
 int screen_width = 320;
 int screen_height = 224;
@@ -254,7 +254,7 @@ void vdp_data_port_write(unsigned int value)
         {
             type = T_VRAM;
         }
-        else if ((control_code & 0xe) == 1)  // CRAM write
+        else if ((control_code & 0xe) == 2)  // CRAM write
         {
             type = T_CRAM;
         }
@@ -390,20 +390,6 @@ unsigned int vdp_read(unsigned int address)
         printf("vdp_read(%x)\n", address);
     }
     return 0;
-}
-
-void vdp_set_status(unsigned int value)
-{
-    unsigned int change = vdp_status^value;
-    vdp_status = value;
-
-    if (change & 8)
-    {
-        m68k_set_irq(6);
-    }
-    else if (change & 4)
-    {
-    }
 }
 
 unsigned int vdp_get_status()

@@ -170,6 +170,7 @@ void frame()
             if (vdp_reg[0] & 0x10)
             {
                 m68k_set_irq(4);
+                m68k_execute(1000);
             }
         }
 

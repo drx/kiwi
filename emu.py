@@ -19,7 +19,6 @@ else:
 md.set_rom(c_char_p(rom), len(rom))
 md.m68k_pulse_reset()
 
-md.vdp_set_status(0x3400)
 screen_buffer = create_string_buffer(320*224*3)
 md.vdp_set_screen(screen_buffer)
 
