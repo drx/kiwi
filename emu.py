@@ -95,6 +95,9 @@ class Display(QWidget):
         timer = QTimer(self)
         timer.timeout.connect(self.frame)
         timer.start(16.667)
+        self.last_fps_time = QTime.currentTime()
+        from collections import deque
+        self.frame_times = deque([100], 100)
 
         self.debug = QLabel()
         self.debug.font = QFont("Menlo", 16)
@@ -140,7 +143,10 @@ class Display(QWidget):
 
         vdp_status = create_string_buffer(1024)
         md.vdp_debug_status(vdp_status)
-        self.debug.setText('Frame: {}\n\n{}\n\n{}'.format(self.frames, vdp_status.value, m68k_status()))
+        self.debug.setText('Frame: {} (fps: {:.2f})\n\n{}\n\n{}'.format(self.frames, 1000.0/sum(self.frame_times)*len(self.frame_times), vdp_status.value, m68k_status()))
+
+        self.frame_times.append(self.last_fps_time.msecsTo(QTime.currentTime()))
+        self.last_fps_time = QTime.currentTime()        
 
 
 app = QApplication(sys.argv)
