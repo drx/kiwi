@@ -100,7 +100,7 @@ unsigned int m68k_read_memory_16(unsigned int address)
 
     if (range >= 0xc0 && range <= 0xdf)
     {
-        vdp_read(address);
+        return vdp_read(address);
     }
     else
     {

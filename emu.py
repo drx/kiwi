@@ -16,6 +16,7 @@ md.vdp_set_status(0x3400)
 screen_buffer = create_string_buffer(320*224*3)
 md.vdp_set_screen(screen_buffer)
 
+
 def m68k_status():
     registers = ['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7',
             'a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7',
@@ -31,9 +32,12 @@ def m68k_status():
         if register == 'pc':
             pc = value
 
-    disasm = create_string_buffer(1024)
-    md.m68k_disassemble(disasm, pc, 1)
-    status = '{}\n{}'.format(disasm.value.lower(), status)
+    lines = []
+    for i in range(4):
+        disasm = create_string_buffer(1024)
+        pc += md.m68k_disassemble(disasm, pc, 1)
+        lines.append('{:06x}: {}'.format(pc, disasm.value.lower()))
+    status = '> {}\n{}'.format('\n'.join(lines), status)
 
     return status
 
@@ -91,6 +95,7 @@ class Display(QWidget):
         super(Display, self).__init__(parent)
 
         self.frames = 0
+        self.pause_emulation = False
 
         timer = QTimer(self)
         timer.timeout.connect(self.frame)
@@ -126,17 +131,24 @@ class Display(QWidget):
         try:
             md.pad_press_button(0, buttons.index(keymap[event.key()]))
         except KeyError:
-            super(Display, self).keyPressEvent(self, event)
+            if event.key() == Qt.Key_P:
+                self.pause_emulation = not self.pause_emulation
+            elif event.key() == Qt.Key_Space:
+                if self.pause_emulation:
+                    md.m68k_execute(1)
+            else:
+                super(Display, self).keyPressEvent(event)
         
     def keyReleaseEvent(self, event):
         try:
             md.pad_release_button(0, buttons.index(keymap[event.key()]))
         except KeyError:
-            super(Display, self).keyReleaseEvent(self, event)
+            super(Display, self).keyReleaseEvent(event)
 
     def frame(self):
-        md.frame()
-        self.frames += 1
+        if not self.pause_emulation:
+            md.frame()
+            self.frames += 1
 
         if not self.frames % 60:
             self.palette_debug.update()
@@ -145,7 +157,8 @@ class Display(QWidget):
 
         vdp_status = create_string_buffer(1024)
         md.vdp_debug_status(vdp_status)
-        self.debug.setText('Frame: {} (fps: {:.2f})\n\n{}\n\n{}'.format(self.frames, 1000.0/sum(self.frame_times)*len(self.frame_times), vdp_status.value, m68k_status()))
+        if self.frames % 2:
+            self.debug.setText('Frame: {} (fps: {:.2f})\n\n{}\n\n{}'.format(self.frames, 1000.0/sum(self.frame_times)*len(self.frame_times), vdp_status.value, m68k_status()))
 
         self.frame_times.append(self.last_fps_time.msecsTo(QTime.currentTime()))
         self.last_fps_time = QTime.currentTime()        
