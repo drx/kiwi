@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 unsigned char ROM[0x400000];
 unsigned char RAM[0x10000];
@@ -14,7 +15,7 @@ unsigned int read_memory(unsigned int address)
 {
     unsigned int range = (address & 0xff0000) >> 16;
 
-    if (range >= 0 && range <= 0x3f)
+    if (range <= 0x3f)
     {
         // ROM
         return ROM[address];
@@ -50,7 +51,7 @@ void write_memory(unsigned int address, unsigned int value)
 {
     unsigned int range = (address & 0xff0000) >> 16;
 
-    if (range >= 0 && range <= 0x3f)
+    if (range <= 0x3f)
     {
         // ROM
         ROM[address] = value;

@@ -34,17 +34,17 @@ void draw_cell_pixel(unsigned int cell, int cell_x, int cell_y, int x, int y)
 
     int pattern_index = 0;
     if (cell & 0x1000)  // v flip
-        pattern_index = (7-(cell_y&7))*4;
+        pattern_index = (7-(cell_y&7))<<2;
     else
-        pattern_index = (cell_y&7)*4; 
+        pattern_index = (cell_y&7)<<2; 
 
     if (cell & 0x800)  // h flip
-        pattern_index += (7-(cell_x&7))/2;
+        pattern_index += (7-(cell_x&7))>>1;
     else
-        pattern_index += (cell_x&7)/2;
+        pattern_index += (cell_x&7)>>1;
 
     unsigned char color_index = pattern[pattern_index];
-    if ((cell_x&1)^(cell>>11)) color_index &= 0xf;
+    if ((cell_x&1)^((cell>>11)&1)) color_index &= 0xf;
     else color_index >>= 4;
 
     if (color_index)
@@ -118,11 +118,11 @@ void vdp_render_sprite(int sprite_index, int line)
 {
     unsigned char *sprite = &VRAM[(vdp_reg[5] << 9) + sprite_index*8];
 
-    unsigned short y_pos = (sprite[0]<<8)|sprite[1];
+    unsigned short y_pos = ((sprite[0]<<8)|sprite[1])&0x3ff;
     int h_size = ((sprite[2]>>2)&0x3) + 1;
     int v_size = (sprite[2]&0x3) + 1;
     unsigned int cell = (sprite[4]<<8)|sprite[5];
-    unsigned short x_pos = (sprite[6]<<8)|sprite[7];
+    unsigned short x_pos = ((sprite[6]<<8)|sprite[7])&0x3ff;
 
     int y = (128-y_pos+line)&7;
     int cell_y = (128-y_pos+line)>>3;
@@ -172,7 +172,7 @@ void vdp_render_sprites(int line, int priority)
 
         if (line >= y_min && line <= y_max)
         {
-            if (((cell & 0x8000) && priority) || (!(cell & 0x8000) && !priority))
+            if ((cell >> 15) == priority)
                 sprite_queue[i++] = cur_sprite;
         }
 
@@ -180,7 +180,7 @@ void vdp_render_sprites(int line, int priority)
         if (!cur_sprite)
             break;
 
-        if (i > 80)
+        if (i >= 80)
             break;
     }
     while (i > 0)

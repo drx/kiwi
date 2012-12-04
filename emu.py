@@ -160,8 +160,7 @@ class Display(QWidget):
             md.frame()
             self.frames += 1
 
-        if not self.frames % 60:
-            self.palette_debug.update()
+        self.palette_debug.update()
 
         blit_screen(self.label)
 
