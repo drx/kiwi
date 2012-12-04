@@ -54,7 +54,7 @@ void draw_cell_pixel(unsigned int cell, int cell_x, int cell_y, int x, int y)
     }
 }
 
-void vdp_render_line(int line)
+void vdp_render_bg(int line)
 {
     int h_cells = 32, v_cells = 32;
 
@@ -118,7 +118,7 @@ void vdp_render_line(int line)
     }
 }
 
-void vdp_render_sprite(int sprite_index)
+void vdp_render_sprite(int sprite_index, int line)
 {
     unsigned char *sprite = &VRAM[(vdp_reg[5] << 9) + sprite_index*8];
 
@@ -128,40 +128,36 @@ void vdp_render_sprite(int sprite_index)
     unsigned int cell = (sprite[4]<<8)|sprite[5];
     unsigned short x_pos = (sprite[6]<<8)|sprite[7];
 
+    int y = (128-y_pos+line)&7;
+    int cell_y = (128-y_pos+line)>>3;
+
     for (int cell_x=0; cell_x<h_size; cell_x++)
     {
-        for (int cell_y=0; cell_y<v_size; cell_y++)
+        for (int x=0; x<8; x++)
         {
-            for (int x=0; x<8; x++)
+            int e_x, e_cell;
+            e_x = cell_x*8 + x + x_pos - 128;
+            e_cell = cell;
+
+            if (cell & 0x1000)
+                e_cell += v_size-cell_y-1;
+            else
+                e_cell += cell_y;
+
+            if (cell & 0x800)
+                e_cell += (h_size-cell_x-1)*v_size;
+            else
+                e_cell += cell_x*v_size;
+            if (e_x >= 0 && e_x < 320)
             {
-                for (int y=0; y<8; y++)
-                {
-                    int e_x, e_y, e_cell;
-                    e_x = cell_x*8 + x + x_pos - 128;
-                    e_y = cell_y*8 + y + y_pos - 128;
-                    e_cell = cell;
-
-                    if (cell & 0x1000)
-                        e_cell += v_size-cell_y-1;
-                    else
-                        e_cell += cell_y;
-
-                    if (cell & 0x800)
-                        e_cell += (h_size-cell_x-1)*v_size;
-                    else
-                        e_cell += cell_x*v_size;
-                    if (e_x >= 0 && e_x < 320 && e_y >= 0 && e_y < 224)
-                    {
-                        draw_cell_pixel(e_cell, x, y, e_x, e_y);
-                    }
-                }
+                draw_cell_pixel(e_cell, x, y, e_x, line);
             }
         }
     }
 
 }
 
-void vdp_render_sprites()
+void vdp_render_sprites(int line)
 {
     unsigned char *sprite_table = &VRAM[vdp_reg[5] << 9];
 
@@ -170,8 +166,15 @@ void vdp_render_sprites()
     int cur_sprite = 0;
     while (1)
     {
-        //vdp_render_sprite(cur_sprite);
-        sprite_queue[i++] = cur_sprite;
+        unsigned char *sprite = &VRAM[(vdp_reg[5] << 9) + cur_sprite*8];
+        unsigned short y_pos = (sprite[0]<<8)|sprite[1];
+        int v_size = (sprite[2]&0x3) + 1;
+
+        int y_min = y_pos-128;
+        int y_max = (v_size-1)*8 + 7 + y_min;
+
+        if (line >= y_min && line <= y_max)
+            sprite_queue[i++] = cur_sprite;
 
         cur_sprite = sprite_table[cur_sprite*8+3];
         if (!cur_sprite)
@@ -182,9 +185,16 @@ void vdp_render_sprites()
     }
     while (i > 0)
     {
-        vdp_render_sprite(sprite_queue[--i]);
+        vdp_render_sprite(sprite_queue[--i], line);
     }
 }
+
+void vdp_render_line(int line)
+{
+    vdp_render_bg(line);
+    vdp_render_sprites(line);
+}
+
 
 void vdp_set_screen(unsigned char* buf)
 {

@@ -190,5 +190,4 @@ void frame()
         m68k_execute(CPL_M68K);
     }
 
-    vdp_render_sprites();
 }
