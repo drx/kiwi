@@ -118,16 +118,44 @@ void vdp_render_line(int line)
     }
 }
 
-void vdp_render_sprite(int sprite)
+void vdp_render_sprite(int sprite_index)
 {
-    unsigned char *sprite_table = &VRAM[vdp_reg[5] << 9];
+    unsigned char *sprite = &VRAM[(vdp_reg[5] << 9) + sprite_index*8];
 
-    unsigned int cell = sprite_table[sprite*8+4];
-    for (int x=0; x<8; x++)
+    unsigned short y_pos = (sprite[0]<<8)|sprite[1];
+    int h_size = ((sprite[2]>>2)&0x3) + 1;
+    int v_size = (sprite[2]&0x3) + 1;
+    unsigned int cell = (sprite[4]<<8)|sprite[5];
+    unsigned short x_pos = (sprite[6]<<8)|sprite[7];
+
+    for (int cell_x=0; cell_x<h_size; cell_x++)
     {
-        for (int y=0; y<8; y++)
+        for (int cell_y=0; cell_y<v_size; cell_y++)
         {
-            draw_cell_pixel(cell, x, y, x*(sprite&15), y*(sprite>>4));
+            for (int x=0; x<8; x++)
+            {
+                for (int y=0; y<8; y++)
+                {
+                    int e_x, e_y, e_cell;
+                    e_x = cell_x*8 + x + x_pos - 128;
+                    e_y = cell_y*8 + y + y_pos - 128;
+                    e_cell = cell;
+
+                    if (cell & 0x1000)
+                        e_cell += v_size-cell_y-1;
+                    else
+                        e_cell += cell_y;
+
+                    if (cell & 0x800)
+                        e_cell += (h_size-cell_x-1)*v_size;
+                    else
+                        e_cell += cell_x*v_size;
+                    if (e_x >= 0 && e_x < 320 && e_y >= 0 && e_y < 224)
+                    {
+                        draw_cell_pixel(e_cell, x, y, e_x, e_y);
+                    }
+                }
+            }
         }
     }
 
@@ -137,19 +165,24 @@ void vdp_render_sprites()
 {
     unsigned char *sprite_table = &VRAM[vdp_reg[5] << 9];
 
+    int sprite_queue[80];
+    int i = 0;
     int cur_sprite = 0;
     while (1)
     {
-        vdp_render_sprite(cur_sprite);
-        /*printf("%d: ", cur_sprite);
-        for (int j=0; j<8; j++)
-            printf("%x ", sprite_table[cur_sprite*8+j]);
-        printf("\n");*/
+        //vdp_render_sprite(cur_sprite);
+        sprite_queue[i++] = cur_sprite;
 
         cur_sprite = sprite_table[cur_sprite*8+3];
         if (!cur_sprite)
             break;
 
+        if (i > 80)
+            break;
+    }
+    while (i > 0)
+    {
+        vdp_render_sprite(sprite_queue[--i]);
     }
 }
 
