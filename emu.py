@@ -102,7 +102,7 @@ class Display(QWidget):
         timer.start(16.667)
         self.last_fps_time = QTime.currentTime()
         from collections import deque
-        self.frame_times = deque([100], 100)
+        self.frame_times = deque([20], 1000)
 
         self.debug = QLabel()
         self.debug.font = QFont("Menlo", 16)
@@ -145,6 +145,16 @@ class Display(QWidget):
         except KeyError:
             super(Display, self).keyReleaseEvent(event)
 
+    def show_fps(self):
+        from itertools import islice
+        values = []
+        for last_n in (1000, 100, 20):
+            start = max(0, len(self.frame_times)-last_n)
+            l = len(self.frame_times)-start
+            q = islice(self.frame_times, start, None)
+            values.append('{:.1f}'.format(1000.0/sum(q)*l))
+        return ' '.join(values)
+
     def frame(self):
         if not self.pause_emulation:
             md.frame()
@@ -158,7 +168,7 @@ class Display(QWidget):
         vdp_status = create_string_buffer(1024)
         md.vdp_debug_status(vdp_status)
         if self.frames % 2:
-            self.debug.setText('Frame: {} (fps: {:.2f})\n\n{}\n\n{}'.format(self.frames, 1000.0/sum(self.frame_times)*len(self.frame_times), vdp_status.value, m68k_status()))
+            self.debug.setText('Frame: {} (fps: {})\n\n{}\n\n{}'.format(self.frames, self.show_fps(), vdp_status.value, m68k_status()))
 
         self.frame_times.append(self.last_fps_time.msecsTo(QTime.currentTime()))
         self.last_fps_time = QTime.currentTime()        
