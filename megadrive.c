@@ -36,7 +36,7 @@ unsigned int read_memory(unsigned int address)
     }
     else if (range >= 0xc0 && range <= 0xdf)
     {
-        // VDP
+        return vdp_read(address);
     }
     else if (range >= 0xe0 && range <= 0xff)
     {

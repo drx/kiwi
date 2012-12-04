@@ -1,5 +1,6 @@
 import sys
 from ctypes import *
+from zipfile import is_zipfile, ZipFile
 
 md = CDLL('megadrive.so')
 
@@ -8,7 +9,13 @@ try:
 except IndexError:
     rom_fn = 'sonic.bin'
 
-rom = open(rom_fn, 'r').read()
+if is_zipfile(rom_fn):
+    zipfile = ZipFile(rom_fn, 'r')
+    contents = [(f.file_size, f.filename) for f in zipfile.infolist()]
+    contents.sort(reverse=True)
+    rom = zipfile.read(contents[0][1])
+else:
+    rom = open(rom_fn, 'r').read()
 md.set_rom(c_char_p(rom), len(rom))
 md.m68k_pulse_reset()
 
