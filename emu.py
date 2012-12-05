@@ -41,8 +41,9 @@ def m68k_status():
     lines = []
     for i in range(4):
         disasm = create_string_buffer(1024)
+        old_pc = pc
         pc += md.m68k_disassemble(disasm, pc, 1)
-        lines.append('{:06x}: {}'.format(pc, disasm.value.lower()))
+        lines.append('{:06x}: {}'.format(old_pc, disasm.value.lower()))
     status = '> {}\n{}'.format('\n'.join(lines), status)
 
     return status
