@@ -6,6 +6,8 @@ unsigned char RAM[0x10000];
 
 const int MCLOCK_NTSC = 53693175;
 
+int lines_per_frame = 262; // NTSC: 262, PAL: 313
+
 void set_rom(unsigned char *buffer, size_t size)
 {
     memcpy(ROM, buffer, size);
@@ -164,12 +166,16 @@ void frame()
 {
     extern unsigned char vdp_reg[0x20];
     extern unsigned int vdp_status;
+    extern int screen_width, screen_height;
     int hint_counter = vdp_reg[10];
     int line;
 
+    screen_width = (vdp_reg[12] & 0x01) ? 320 : 256;
+    screen_height = (vdp_reg[1] & 0x08) ? 240 : 224;
+
     vdp_clear_vblank();
 
-    for (line=0; line < 224; line++)
+    for (line=0; line < screen_height; line++)
     {
         m68k_execute((2560+120)/7);
 
@@ -205,7 +211,7 @@ void frame()
         m68k_set_irq(6);
     }
 
-    for (;line < 262; line++)
+    for (;line < lines_per_frame; line++)
     {
         m68k_execute(3420);
     }

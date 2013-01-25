@@ -13,19 +13,20 @@ unsigned int control_address = 0;
 int control_pending = 0;
 unsigned int vdp_status = 0x3400;
 
-int screen_width = 320;
-int screen_height = 224;
+int screen_width;
+int screen_height;
 
 int dma_length;
 unsigned int dma_source;
 int dma_fill = 0;
 
 
-#define set_pixel(scr, pixel, index) \
+#define set_pixel(scr, x, y, index) \
     do {\
-        scr[(pixel)*3] = (CRAM[index]<<4)&0xe0; \
-        scr[(pixel)*3+1] = (CRAM[index])&0xe0; \
-        scr[(pixel)*3+2] = (CRAM[index]>>4)&0xe0; \
+        int pixel = ((240-screen_height)/2+y)*320+(x)+(320-screen_width)/2; \
+        scr[pixel*3] = (CRAM[index]<<4)&0xe0; \
+        scr[pixel*3+1] = (CRAM[index])&0xe0; \
+        scr[pixel*3+2] = (CRAM[index]>>4)&0xe0; \
     } while(0);
 
 void draw_cell_pixel(unsigned int cell, int cell_x, int cell_y, int x, int y)
@@ -50,7 +51,7 @@ void draw_cell_pixel(unsigned int cell, int cell_x, int cell_y, int x, int y)
     if (color_index)
     {
         color_index += (cell & 0x6000)>>9;
-        set_pixel(screen, y*screen_width+x, color_index);
+        set_pixel(screen, x, y, color_index);
     }
 }
 
@@ -98,7 +99,7 @@ void vdp_render_bg(int line, int priority)
 
         short hscroll = (hscroll_table[((line & hscroll_mask))*4+(scroll_i^1)*2]<<8)
                                 | hscroll_table[((line & hscroll_mask))*4+(scroll_i^1)*2+1];
-        for (int column = 0; column < 320; column++)
+        for (int column = 0; column < screen_width; column++)
         {
             short vscroll = VSRAM[(column & vscroll_mask)/4+(scroll_i^1)] & 0x3ff;
             int e_line = (line+vscroll)&(v_cells*8-1);
@@ -144,7 +145,7 @@ void vdp_render_sprite(int sprite_index, int line)
                 e_cell += (h_size-cell_x-1)*v_size;
             else
                 e_cell += cell_x*v_size;
-            if (e_x >= 0 && e_x < 320)
+            if (e_x >= 0 && e_x < screen_width)
             {
                 draw_cell_pixel(e_cell, x, y, e_x, line);
             }
@@ -193,7 +194,7 @@ void vdp_render_line(int line)
 {
     for (int i=0; i<screen_width; i++)
     {
-        set_pixel(screen, line*screen_width+i, vdp_reg[7]&0x3f);
+        set_pixel(screen, i, line, vdp_reg[7]&0x3f);
     }
 
     vdp_render_bg(line, 0);

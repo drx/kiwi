@@ -19,7 +19,7 @@ else:
 md.set_rom(c_char_p(rom), len(rom))
 md.m68k_pulse_reset()
 
-screen_buffer = create_string_buffer(320*224*3)
+screen_buffer = create_string_buffer(320*240*3)
 md.vdp_set_screen(screen_buffer)
 
 
@@ -86,7 +86,7 @@ keymap = {
         }
 
 def blit_screen(label):
-    ppm = 'P6 320 224 255 '+screen_buffer.raw
+    ppm = 'P6 320 240 255 '+screen_buffer.raw
 
     qba = QByteArray()
     qba.setRawData(ppm, len(ppm))
@@ -123,7 +123,7 @@ class Display(QWidget):
         self.qba = QByteArray()
         self.frame()
         self.setWindowTitle("emu pie")
-        self.debug.resize(320, 224)
+        self.debug.resize(320, 240)
 
         layout = QGridLayout()
         layout.addWidget(self.debug, 0, 0)
@@ -131,7 +131,7 @@ class Display(QWidget):
         layout.addWidget(self.label, 0, 1, 1, 2)
         layout.setRowMinimumHeight(0, 320)
         layout.setRowMinimumHeight(1, 100)
-        layout.setColumnMinimumWidth(1, 224)
+        layout.setColumnMinimumWidth(1, 240)
         self.setLayout(layout)
 
     def keyPressEvent(self, event):
