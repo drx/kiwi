@@ -93,6 +93,7 @@ def blit_screen(label):
 
     pixmap = QPixmap()
     pixmap.loadFromData(qba)
+    pixmap = pixmap.scaled(640, 480)
     label.setPixmap(pixmap)
 
     del qba
@@ -103,6 +104,7 @@ class Display(QWidget):
 
         self.frames = 0
         self.pause_emulation = False
+        self.debug = False
 
         timer = QTimer(self)
         timer.timeout.connect(self.frame)
@@ -111,9 +113,9 @@ class Display(QWidget):
         from collections import deque
         self.frame_times = deque([20], 1000)
 
-        self.debug = QLabel()
-        self.debug.font = QFont("Menlo", 16)
-        self.debug.setFont(self.debug.font)
+        self.debug_label = QLabel()
+        self.debug_label.font = QFont("Menlo", 16)
+        self.debug_label.setFont(self.debug_label.font)
 
         self.palette_debug = PaletteDebug()
 
@@ -123,22 +125,36 @@ class Display(QWidget):
         self.qba = QByteArray()
         self.frame()
         self.setWindowTitle("emu pie")
-        self.debug.resize(320, 240)
+        self.debug_label.resize(320, 240)
 
         layout = QGridLayout()
-        layout.addWidget(self.debug, 0, 0)
+        layout.addWidget(self.debug_label, 0, 0)
         layout.addWidget(self.palette_debug, 1, 0)
         layout.addWidget(self.label, 0, 1, 1, 2)
         layout.setRowMinimumHeight(0, 320)
-        layout.setRowMinimumHeight(1, 100)
         layout.setColumnMinimumWidth(1, 240)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.debug_label.hide()
+        self.palette_debug.hide()
         self.setLayout(layout)
+        self.layout = layout
 
     def keyPressEvent(self, event):
         try:
             md.pad_press_button(0, buttons.index(keymap[event.key()]))
         except KeyError:
-            if event.key() == Qt.Key_P:
+            if event.key() == Qt.Key_D:
+                self.debug = not self.debug
+                self.debug_label.setVisible(self.debug)
+                self.palette_debug.setVisible(self.debug)
+                self.layout.setRowMinimumHeight(1, 100 if self.debug else 0)
+                if self.debug:
+                    self.layout.setContentsMargins(10, 10, 10, 10)
+                else:
+                    self.layout.setContentsMargins(0, 0, 0, 0)
+
+                self.adjustSize()
+            elif event.key() == Qt.Key_P:
                 self.pause_emulation = not self.pause_emulation
             elif event.key() == Qt.Key_Space:
                 if self.pause_emulation:
@@ -167,17 +183,19 @@ class Display(QWidget):
             md.frame()
             self.frames += 1
 
-        self.palette_debug.update()
+        if self.debug:
+            self.palette_debug.update()
 
         blit_screen(self.label)
-
-        vdp_status = create_string_buffer(1024)
-        md.vdp_debug_status(vdp_status)
-        if self.frames % 2:
-            self.debug.setText('Frame: {} (fps: {})\n\n{}\n\n{}'.format(self.frames, self.show_fps(), vdp_status.value, m68k_status()))
-
         self.frame_times.append(self.last_fps_time.msecsTo(QTime.currentTime()))
         self.last_fps_time = QTime.currentTime()        
+
+        if self.debug:
+            vdp_status = create_string_buffer(1024)
+            md.vdp_debug_status(vdp_status)
+            if self.frames % 2:
+                self.debug_label.setText('Frame: {} (fps: {})\n\n{}\n\n{}'.format(self.frames, self.show_fps(), vdp_status.value, m68k_status()))
+
 
 
 app = QApplication(sys.argv)
