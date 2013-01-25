@@ -32,6 +32,10 @@ unsigned int read_memory(unsigned int address)
         {
             return io_read_memory(address & 0x1f);
         }
+        else if (address >= 0xa11100 && address < 0xa11300)
+        {
+            return z80_ctrl_read(address & 0xffff);
+        }
         return 0;
     }
     else if (range >= 0xc0 && range <= 0xdf)
@@ -68,6 +72,11 @@ void write_memory(unsigned int address, unsigned int value)
         if (address >= 0xa10000 && address < 0xa10020)
         {
             io_write_memory(address & 0x1f, value);
+            return;
+        }
+        else if (address >= 0xa11100 && address < 0xa11300)
+        {
+            z80_ctrl_write(address & 0xffff, value);
             return;
         }
         return;

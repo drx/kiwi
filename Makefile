@@ -6,8 +6,8 @@ all: megadrive.so
 
 clean:
 
-megadrive.so: m68k/m68kcpu.o m68k/m68kops.o m68k/m68kopac.o m68k/m68kopdm.o m68k/m68kopnz.o m68k/m68kdasm.o megadrive.o vdp.o input.o
-		$(CC) m68k/m68kcpu.o m68k/m68kops.o m68k/m68kopac.o m68k/m68kopdm.o m68k/m68kopnz.o m68k/m68kdasm.o megadrive.o vdp.o input.o -shared -o megadrive.so
+megadrive.so: m68k/m68kcpu.o m68k/m68kops.o m68k/m68kopac.o m68k/m68kopdm.o m68k/m68kopnz.o m68k/m68kdasm.o megadrive.o vdp.o input.o z80.o
+		$(CC) m68k/m68kcpu.o m68k/m68kops.o m68k/m68kopac.o m68k/m68kopdm.o m68k/m68kopnz.o m68k/m68kdasm.o megadrive.o vdp.o input.o z80.o -shared -o megadrive.so
 
 %.o: %.c
 		$(CC) $(CFLAGS) $^ -std=c99 -o $@
