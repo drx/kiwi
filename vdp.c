@@ -316,12 +316,17 @@ void vdp_control_write(unsigned int value)
         control_address = (control_address & 0x3fff) | ((value & 3) << 14); 
         control_pending = 0;
 
-        if ((control_code & 0x20) && (vdp_reg[1] & 0x10) && (vdp_reg[23] & 0x80) == 0)
+        if ((control_code & 0x20) && (vdp_reg[1] & 0x10))
         {
             if ((vdp_reg[23] >> 6) == 2)
             {
                 // DMA fill
                 dma_fill = 1;
+            }
+            else if ((vdp_reg[23] >> 6) == 3)
+            {
+                // DMA copy
+                printf("DMA copy\n");
             }
             else 
             {
