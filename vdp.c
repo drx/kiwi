@@ -386,6 +386,37 @@ unsigned int vdp_read(unsigned int address)
     {
         return vdp_status;
     }
+    else if (address >= 0x08 && address < 0x10)
+    {
+        extern int cycle_counter;
+        extern int lines_per_frame;
+        extern int MCYCLES_PER_LINE;
+
+        int vcounter, hcounter;
+           
+        vcounter = cycle_counter/MCYCLES_PER_LINE-1;
+        if (vcounter > (vdp_reg[1] & 0x08 ? 262 : 234))
+        {
+            vcounter -= lines_per_frame;
+        }
+
+        if (vdp_reg[12] & 0x01)
+        {
+            hcounter = 0;
+        }
+        else
+        {
+            hcounter = ((cycle_counter+10)%MCYCLES_PER_LINE)/20;
+            if (hcounter >= 12)
+                hcounter += 0x56;
+            hcounter += 0x85;
+        }
+
+        if (address & 1)
+            return hcounter & 0xff;
+        else
+            return vcounter & 0xff;
+    }
     else
     {
         printf("vdp_read(%x)\n", address);

@@ -161,7 +161,7 @@ class Display(QWidget):
                 self.pause_emulation = not self.pause_emulation
             elif event.key() == Qt.Key_Space:
                 if self.pause_emulation:
-                    md.m68k_execute(1)
+                    md.m68k_execute(7)
                 else:
                     self.turbo = not self.turbo
                     self.timer.setInterval(4 if self.turbo else 16.67)

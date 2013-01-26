@@ -624,6 +624,9 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 /* ASG: removed per-instruction interrupt checks */
 int m68k_execute(int num_cycles)
 {
+    extern int cycle_counter;
+    num_cycles /= 7; // num_cycles is given in M cycles
+
 	/* Make sure we're not stopped */
 	if(!CPU_STOPPED)
 	{
@@ -668,6 +671,8 @@ int m68k_execute(int num_cycles)
 		/* ASG: update cycles */
 		USE_CYCLES(CPU_INT_CYCLES);
 		CPU_INT_CYCLES = 0;
+
+        cycle_counter += (m68ki_initial_cycles - GET_CYCLES())*7;
 
 		/* return how many clocks we used */
 		return m68ki_initial_cycles - GET_CYCLES();

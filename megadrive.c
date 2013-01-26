@@ -5,8 +5,11 @@ unsigned char ROM[0x400000];
 unsigned char RAM[0x10000];
 
 const int MCLOCK_NTSC = 53693175;
+const int MCYCLES_PER_LINE = 3420;
 
 int lines_per_frame = 262; // NTSC: 262, PAL: 313
+
+int cycle_counter = 0;
 
 void set_rom(unsigned char *buffer, size_t size)
 {
@@ -170,6 +173,8 @@ void frame()
     int hint_counter = vdp_reg[10];
     int line;
 
+    cycle_counter = 0;
+
     screen_width = (vdp_reg[12] & 0x01) ? 320 : 256;
     screen_height = (vdp_reg[1] & 0x08) ? 240 : 224;
 
@@ -177,7 +182,7 @@ void frame()
 
     for (line=0; line < screen_height; line++)
     {
-        m68k_execute((2560+120)/7);
+        m68k_execute(2560+120);
 
         if (--hint_counter < 0)
         {
@@ -185,35 +190,38 @@ void frame()
             if (vdp_reg[0] & 0x10)
             {
                 m68k_set_irq(4);
-                m68k_execute(1000);
+                //m68k_execute(7000);
             }
         }
 
         vdp_set_hblank();
-        m68k_execute((64+313+259)/7);
+        m68k_execute(64+313+259);
         vdp_clear_hblank();
 
-        m68k_execute((104)/7);
+        m68k_execute(104);
 
         vdp_render_line(line);
     }
 
     vdp_set_vblank();
 
-    m68k_execute(588/7);
+    m68k_execute(588);
 
     vdp_status |= 0x80;
 
-    m68k_execute(788/7);
+    m68k_execute(200);
 
     if (vdp_reg[1] & 0x20)
     {
         m68k_set_irq(6);
     }
 
+    m68k_execute(3420-788);
+    line++;
+
     for (;line < lines_per_frame; line++)
     {
-        m68k_execute(3420);
+        m68k_execute(3420); /**/
     }
 
 }
