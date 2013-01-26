@@ -12,7 +12,7 @@ megadrive.so: m68k/m68kcpu.o m68k/m68kops.o m68k/m68kopac.o m68k/m68kopdm.o m68k
 %.o: %.c
 		$(CC) $(CFLAGS) $^ -std=c99 -o $@
 
-m68k/m68kcpu.o: m68k/m68kops.h m68k/m68k.h m68k/m68kconf.h
+m68k/m68kcpu.o: m68k/m68kops.h m68k/m68k.h m68k/m68kconf.h m68k/m68kcpu.c
 		$(CC) $(CFLAGS) m68k/m68kcpu.c -o m68k/m68kcpu.o
 
 m68k/m68kdasm.o: m68k/m68kdasm.c m68k/m68k.h m68k/m68kconf.h
