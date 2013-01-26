@@ -63,13 +63,13 @@ void vdp_render_bg(int line, int priority)
     {
         case 0: h_cells = 32; break;
         case 1: h_cells = 64; break;
-        case 2: h_cells = 128; break;
+        case 3: h_cells = 128; break;
     }
     switch ((vdp_reg[16]>>4) & 3)
     {
         case 0: v_cells = 32; break;
         case 1: v_cells = 64; break;
-        case 2: v_cells = 128; break;
+        case 3: v_cells = 128; break;
     }
 
     int hscroll_type = vdp_reg[11]&3;
@@ -305,14 +305,14 @@ void vdp_control_write(unsigned int value)
         }
         else
         {
-            control_code = (control_code & 0x3c) | (value >> 14);
+            control_code = (control_code & 0x3c) | ((value >> 14) & 3);
             control_address = (control_address & 0xc000) | (value & 0x3fff);
             control_pending = 1;
         }
     }
     else
     {
-        control_code = (control_code & 0x3) | ((value >> 2) & 0x3c);
+        control_code = (control_code & 3) | ((value >> 2) & 0x3c);
         control_address = (control_address & 0x3fff) | ((value & 3) << 14); 
         control_pending = 0;
 

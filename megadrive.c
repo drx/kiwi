@@ -89,6 +89,7 @@ void write_memory(unsigned int address, unsigned int value)
     else if (range >= 0xc0 && range <= 0xdf)
     {
         // VDP
+        //printf("8-bit VDP write: %x = %x\n", address, value);
         return;
     }
     else if (range >= 0xe0 && range <= 0xff)
