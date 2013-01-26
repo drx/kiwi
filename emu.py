@@ -109,6 +109,9 @@ class Display(QWidget):
         timer = QTimer(self)
         timer.timeout.connect(self.frame)
         timer.start(16.667)
+        self.timer = timer
+        self.turbo = False
+
         self.last_fps_time = QTime.currentTime()
         from collections import deque
         self.frame_times = deque([20], 1000)
@@ -159,6 +162,9 @@ class Display(QWidget):
             elif event.key() == Qt.Key_Space:
                 if self.pause_emulation:
                     md.m68k_execute(1)
+                else:
+                    self.turbo = not self.turbo
+                    self.timer.setInterval(4 if self.turbo else 16.67)
             else:
                 super(Display, self).keyPressEvent(event)
         
