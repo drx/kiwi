@@ -3,7 +3,7 @@
 
 unsigned char VRAM[0x10000];
 unsigned short CRAM[0x40];
-unsigned short VSRAM[40];
+unsigned short VSRAM[0x40];
 unsigned char vdp_reg[0x20];
 
 unsigned char *screen;
