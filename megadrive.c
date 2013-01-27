@@ -3,6 +3,7 @@
 
 unsigned char ROM[0x400000];
 unsigned char RAM[0x10000];
+unsigned char ZRAM[0x2000];
 
 const int MCLOCK_NTSC = 53693175;
 const int MCYCLES_PER_LINE = 3420;
@@ -28,6 +29,10 @@ unsigned int read_memory(unsigned int address)
     else if (range == 0xa0)
     {
         // Z80 space
+        if (address >= 0xa00000 && address < 0xa04000)
+        {
+            return ZRAM[address & 0x1fff];
+        }
         return 0;
     }
     else if (range == 0xa1)
@@ -69,6 +74,10 @@ void write_memory(unsigned int address, unsigned int value)
     else if (range == 0xa0)
     {
         // Z80 space
+        if (address >= 0xa00000 && address < 0xa04000)
+        {
+            ZRAM[address & 0x1fff] = value;
+        }
         return;
     }
     else if (range == 0xa1)
