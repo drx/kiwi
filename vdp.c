@@ -23,7 +23,7 @@ int dma_fill = 0;
 
 #define set_pixel(scr, x, y, index) \
     do {\
-        int pixel = ((240-screen_height)/2+y)*320+(x)+(320-screen_width)/2; \
+        int pixel = ((240-screen_height)/2+(y))*320+(x)+(320-screen_width)/2; \
         scr[pixel*3] = (CRAM[index]<<4)&0xe0; \
         scr[pixel*3+1] = (CRAM[index])&0xe0; \
         scr[pixel*3+2] = (CRAM[index]>>4)&0xe0; \
@@ -265,7 +265,7 @@ void vdp_data_port_write(unsigned int value)
         }
         vdp_data_write(value, type, 0);
     }
-    control_address += 2;
+    control_address = (control_address + 2) & 0xffff;
     control_pending = 0;
 
     if (dma_fill)
@@ -276,6 +276,7 @@ void vdp_data_port_write(unsigned int value)
         {
             VRAM[control_address] = value >> 8;
             control_address += vdp_reg[15];
+            control_address &= 0xffff;
         }
     }
 }
@@ -355,6 +356,7 @@ void vdp_control_write(unsigned int value)
                     dma_source += 2;
                     vdp_data_write(word, type, 1);
                     control_address += vdp_reg[15];
+                    control_address &= 0xffff;
                 }
             }
         }
