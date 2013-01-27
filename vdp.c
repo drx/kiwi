@@ -265,10 +265,10 @@ void vdp_data_port_write(unsigned int value)
         }
         vdp_data_write(value, type, 0);
     }
-    control_address = (control_address + 2) & 0xffff;
+    control_address = (control_address + vdp_reg[15]) & 0xffff;
     control_pending = 0;
 
-    if (dma_fill)
+    if (dma_fill && 0)
     {
         dma_fill = 0;
         dma_length = vdp_reg[19] | (vdp_reg[20] << 8);
@@ -283,7 +283,8 @@ void vdp_data_port_write(unsigned int value)
 
 void vdp_set_reg(int reg, unsigned char value)
 {
-    vdp_reg[reg] = value;
+    if (vdp_reg[1] & 4 || reg <= 10)
+        vdp_reg[reg] = value;
 
     control_code = 0;
 }
@@ -319,7 +320,7 @@ void vdp_control_write(unsigned int value)
 
         if ((control_code & 0x20) && (vdp_reg[1] & 0x10))
         {
-            if ((vdp_reg[23] >> 6) == 2)
+            if ((vdp_reg[23] >> 6) == 2 && (control_code & 7) == 1)
             {
                 // DMA fill
                 dma_fill = 1;
