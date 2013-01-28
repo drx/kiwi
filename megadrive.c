@@ -177,7 +177,7 @@ void m68k_write_memory_32(unsigned int address, unsigned int value)
 
 void frame()
 {
-    extern unsigned char vdp_reg[0x20];
+    extern unsigned char vdp_reg[0x20], *screen;
     extern unsigned int vdp_status;
     extern int screen_width, screen_height;
     int hint_counter = vdp_reg[10];
@@ -189,6 +189,7 @@ void frame()
     screen_height = (vdp_reg[1] & 0x08) ? 240 : 224;
 
     vdp_clear_vblank();
+    memset(screen, 0, 320*240*3);
 
     for (line=0; line < screen_height; line++)
     {
