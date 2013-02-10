@@ -134,7 +134,7 @@ class Display(QWidget):
 
     def open_file(self):
         import os
-        rom_fn, _ = QFileDialog.getOpenFileName(self, "Open ROM", os.getcwd(), "Sega Genesis ROMs (*.bin *.gen)")
+        rom_fn, _ = QFileDialog.getOpenFileName(self, "Open ROM", os.getcwd(), "Sega Genesis ROMs (*.bin *.gen *.zip)")
 
         if not rom_fn:
             return
