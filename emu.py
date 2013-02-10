@@ -112,7 +112,7 @@ class Display(QWidget):
 
         self.label = QLabel("<b style='color: #eee'>Welcome to <span style='color: #9b4'>Kiwi</span>!</b><br><br>Press O to open a ROM")
         self.label.setAlignment(Qt.AlignCenter)
-        self.label.setStyleSheet("background-color: #222; color: #ddd;")
+        self.label.setStyleSheet("background-color: #222; color: #ddd; font-family: Verdana")
         self.label.show()
 
         self.qba = QByteArray()
