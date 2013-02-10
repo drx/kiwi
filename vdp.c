@@ -268,7 +268,7 @@ void vdp_data_port_write(unsigned int value)
     control_address = (control_address + vdp_reg[15]) & 0xffff;
     control_pending = 0;
 
-    if (dma_fill && 0)
+    if (dma_fill)
     {
         dma_fill = 0;
         dma_length = vdp_reg[19] | (vdp_reg[20] << 8);
