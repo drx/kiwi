@@ -4,20 +4,6 @@ from zipfile import is_zipfile, ZipFile
 
 md = CDLL('./megadrive.so')
 
-try:
-    rom_fn = sys.argv[1]
-except IndexError:
-    rom_fn = 'sonic.bin'
-
-if is_zipfile(rom_fn):
-    zipfile = ZipFile(rom_fn, 'r')
-    contents = [(f.file_size, f.filename) for f in zipfile.infolist()]
-    contents.sort(reverse=True)
-    rom = zipfile.read(contents[0][1])
-else:
-    rom = open(rom_fn, 'r').read()
-md.set_rom(c_char_p(rom), len(rom))
-md.m68k_pulse_reset()
 
 screen_buffer = create_string_buffer(320*240*3)
 md.vdp_set_screen(screen_buffer)
@@ -103,7 +89,8 @@ class Display(QWidget):
         super(Display, self).__init__(parent)
 
         self.frames = 0
-        self.pause_emulation = False
+        self.pause_emulation = True
+        self.rom_fn = ''
         self.debug = False
 
         timer = QTimer(self)
@@ -123,7 +110,9 @@ class Display(QWidget):
 
         self.palette_debug = PaletteDebug()
 
-        self.label = QLabel("")
+        self.label = QLabel("<b style='color: #eee'>Welcome to <span style='color: #9b4'>Kiwi</span>!</b><br><br>Press O to open a ROM")
+        self.label.setAlignment(Qt.AlignCenter)
+        self.label.setStyleSheet("background-color: #222; color: #ddd;")
         self.label.show()
 
         self.qba = QByteArray()
@@ -131,6 +120,8 @@ class Display(QWidget):
         self.setWindowTitle("Kiwi")
 
         layout = QGridLayout()
+        layout.setRowMinimumHeight(0, 480)
+        layout.setColumnMinimumWidth(1, 630)
         layout.addWidget(self.debug_label, 0, 0)
         layout.addWidget(self.palette_debug, 1, 0)
         layout.addWidget(self.label, 0, 1, 1, 2)
@@ -139,6 +130,28 @@ class Display(QWidget):
         self.palette_debug.hide()
         self.setLayout(layout)
         self.layout = layout
+
+    def open_file(self):
+        import os
+        rom_fn, _ = QFileDialog.getOpenFileName(self, "Open ROM", os.getcwd(), "Sega Genesis ROMs (*.bin *.gen)")
+
+        if not rom_fn:
+            return
+
+        self.rom_fn = rom_fn
+
+        if is_zipfile(rom_fn):
+            zipfile = ZipFile(rom_fn, 'r')
+            contents = [(f.file_size, f.filename) for f in zipfile.infolist()]
+            contents.sort(reverse=True)
+            rom = zipfile.read(contents[0][1])
+        else:
+            rom = open(rom_fn, 'r').read()
+        md.set_rom(c_char_p(rom), len(rom))
+        md.m68k_pulse_reset()
+        self.pause_emulation = False
+        self.activateWindow()
+
 
     def keyPressEvent(self, event):
         try:
@@ -155,6 +168,8 @@ class Display(QWidget):
                     self.layout.setContentsMargins(0, 0, 0, 0)
 
                 self.adjustSize()
+            elif event.key() == Qt.Key_O:
+                self.open_file()
             elif event.key() == Qt.Key_P:
                 self.pause_emulation = not self.pause_emulation
             elif event.key() == Qt.Key_Space:
@@ -190,7 +205,9 @@ class Display(QWidget):
         if self.debug:
             self.palette_debug.update()
 
-        blit_screen(self.label)
+        if self.rom_fn:
+            blit_screen(self.label)
+
         self.frame_times.append(self.last_fps_time.msecsTo(QTime.currentTime()))
         self.last_fps_time = QTime.currentTime()        
 
@@ -205,4 +222,5 @@ class Display(QWidget):
 app = QApplication(sys.argv)
 display = Display()
 display.show()
+display.raise_()
 app.exec_()
