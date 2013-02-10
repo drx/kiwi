@@ -74,7 +74,7 @@ void io_write_memory(unsigned int address, unsigned int value)
         return;
     }
 
-    printf("io_write_memory(%x, %x)", address, value);
+    printf("io_write_memory(%x, %x)\n", address, value);
 }
 
 unsigned int io_read_memory(unsigned int address)
