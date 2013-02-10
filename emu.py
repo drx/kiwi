@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import sys
 from ctypes import *
 from zipfile import is_zipfile, ZipFile
