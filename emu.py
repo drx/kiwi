@@ -2,7 +2,7 @@ import sys
 from ctypes import *
 from zipfile import is_zipfile, ZipFile
 
-md = CDLL('megadrive.so')
+md = CDLL('./megadrive.so')
 
 try:
     rom_fn = sys.argv[1]
@@ -118,6 +118,7 @@ class Display(QWidget):
 
         self.debug_label = QLabel()
         self.debug_label.font = QFont("Menlo", 16)
+        self.debug_label.font.setStyleHint(QFont.TypeWriter)
         self.debug_label.setFont(self.debug_label.font)
 
         self.palette_debug = PaletteDebug()
@@ -127,15 +128,12 @@ class Display(QWidget):
 
         self.qba = QByteArray()
         self.frame()
-        self.setWindowTitle("emu pie")
-        self.debug_label.resize(320, 240)
+        self.setWindowTitle("Kiwi")
 
         layout = QGridLayout()
         layout.addWidget(self.debug_label, 0, 0)
         layout.addWidget(self.palette_debug, 1, 0)
         layout.addWidget(self.label, 0, 1, 1, 2)
-        layout.setRowMinimumHeight(0, 320)
-        layout.setColumnMinimumWidth(1, 240)
         layout.setContentsMargins(0, 0, 0, 0)
         self.debug_label.hide()
         self.palette_debug.hide()
