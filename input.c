@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 enum pad_button
 {
     PAD_UP,
@@ -14,12 +16,12 @@ unsigned short button_state[3];
 unsigned short pad_state[3];
 unsigned char io_reg[16] = {0xa0, 0x7f, 0x7f, 0x7f, 0, 0, 0, 0xff, 0, 0, 0xff, 0, 0, 0xff, 0, 0};
 
-int pad_press_button(int pad, int button)
+void pad_press_button(int pad, int button)
 {
     button_state[pad] |= (1<<button);
 }
 
-int pad_release_button(int pad, int button)
+void pad_release_button(int pad, int button)
 {
     button_state[pad] &= ~(1<<button);
 }
