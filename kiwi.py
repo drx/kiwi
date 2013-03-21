@@ -72,7 +72,7 @@ keymap = {
         Qt.Key_Q: 'start',
         }
 
-def blit_screen(label):
+def blit_screen(label, zoom_level):
     ppm = 'P6 320 240 255 '+screen_buffer.raw
 
     qba = QByteArray()
@@ -80,7 +80,7 @@ def blit_screen(label):
 
     pixmap = QPixmap()
     pixmap.loadFromData(qba)
-    pixmap = pixmap.scaled(640, 480)
+    pixmap = pixmap.scaled(320*zoom_level, 240*zoom_level)
     label.setPixmap(pixmap)
 
     del qba
@@ -90,7 +90,8 @@ class Display(QWidget):
         super(Display, self).__init__(parent)
 
         self.frames = 0
-        self.pause_emulation = True
+        self.pause_emulation = False
+        self.zoom_level = 2
         self.rom_fn = ''
         self.debug = False
 
@@ -131,7 +132,73 @@ class Display(QWidget):
         self.palette_debug.hide()
         self.setLayout(layout)
         self.layout = layout
+        self.create_menus()
 
+
+    def create_menus(self):
+        self.menubar = QMenuBar()
+        file_menu = self.menubar.addMenu('&File')
+        options_menu = self.menubar.addMenu('&Options')
+        zoom_menu = options_menu.addMenu('Video zoom')
+        render_menu = options_menu.addMenu('Rendering filter')
+        file_menu.addAction('Open ROM', self, SLOT('open_file()'), QKeySequence.Open)
+        file_menu.addSeparator()
+        file_menu.addAction('Pause emulation', self, SLOT('toggle_pause()'), QKeySequence('Ctrl+P')).setCheckable(True)
+        file_menu.addAction('Reset emulation', self, SLOT('reset_emulation()'), QKeySequence('Ctrl+R'))
+        file_menu.addSeparator()
+        file_menu.addAction('Quit', self, SLOT('quit()'), QKeySequence.Quit)
+
+        zoom_group = QActionGroup(self)
+        zoom_group.triggered.connect(self.set_zoom_level)
+        for zoom_level in ('1x', '2x', '3x', '4x'):
+            action = QAction(zoom_level, zoom_group)
+            action.setCheckable(True)
+            zoom_menu.addAction(action)
+            if zoom_level == '2x':
+                action.setChecked(True)
+
+        render_group = QActionGroup(self)
+        render_group.triggered.connect(self.set_render_filter)
+        for render_filter in ('None', 'hq4x'):
+            action = QAction(render_filter, render_group)
+            action.setCheckable(True)
+            render_menu.addAction(action)
+            if render_filter == 'None':
+                action.setChecked(True)
+
+        options_menu.addAction('Show debug information', self, SLOT('toggle_debug()'), QKeySequence('Ctrl+D')).setCheckable(True)
+
+    @Slot()
+    def quit(self):
+        app.quit()
+
+    @Slot()
+    def toggle_debug(self):
+        self.debug = not self.debug
+        self.debug_label.setVisible(self.debug)
+        self.palette_debug.setVisible(self.debug)
+        self.layout.setRowMinimumHeight(1, 100 if self.debug else 0)
+        if self.debug:
+            self.layout.setContentsMargins(10, 10, 10, 10)
+        else:
+            self.layout.setContentsMargins(0, 0, 0, 0)
+
+        self.adjustSize()
+
+    @Slot()
+    def set_render_filter(self, action):
+        pass
+
+    @Slot()
+    def set_zoom_level(self, action):
+        try:
+            self.zoom_level = {'1x': 1, '2x': 2, '3x': 3, '4x': 4}[action.text()]
+            self.layout.setRowMinimumHeight(0, self.zoom_level*240)
+            self.layout.setColumnMinimumWidth(1, self.zoom_level*320-10)
+        except KeyError:
+            pass
+
+    @Slot()
     def open_file(self):
         import os
         rom_fn, _ = QFileDialog.getOpenFileName(self, "Open ROM", os.getcwd(), "Sega Genesis ROMs (*.bin *.gen *.zip)")
@@ -149,31 +216,22 @@ class Display(QWidget):
         else:
             rom = open(rom_fn, 'r').read()
         md.set_rom(c_char_p(rom), len(rom))
-        md.m68k_pulse_reset()
-        self.pause_emulation = False
+        self.reset_emulation()
         self.activateWindow()
 
+    @Slot()
+    def reset_emulation(self):
+        md.m68k_pulse_reset()
+
+    @Slot()
+    def toggle_pause(self):
+        self.pause_emulation = not self.pause_emulation
 
     def keyPressEvent(self, event):
         try:
             md.pad_press_button(0, buttons.index(keymap[event.key()]))
         except KeyError:
-            if event.key() == Qt.Key_D:
-                self.debug = not self.debug
-                self.debug_label.setVisible(self.debug)
-                self.palette_debug.setVisible(self.debug)
-                self.layout.setRowMinimumHeight(1, 100 if self.debug else 0)
-                if self.debug:
-                    self.layout.setContentsMargins(10, 10, 10, 10)
-                else:
-                    self.layout.setContentsMargins(0, 0, 0, 0)
-
-                self.adjustSize()
-            elif event.key() == Qt.Key_O:
-                self.open_file()
-            elif event.key() == Qt.Key_P:
-                self.pause_emulation = not self.pause_emulation
-            elif event.key() == Qt.Key_Space:
+            if event.key() == Qt.Key_Space:
                 if self.pause_emulation:
                     md.m68k_execute(7)
                 else:
@@ -199,7 +257,7 @@ class Display(QWidget):
         return ' '.join(values)
 
     def frame(self):
-        if not self.pause_emulation:
+        if not self.pause_emulation and self.rom_fn:
             md.frame()
             self.frames += 1
 
@@ -207,7 +265,8 @@ class Display(QWidget):
             self.palette_debug.update()
 
         if self.rom_fn:
-            blit_screen(self.label)
+            blit_screen(self.label, self.zoom_level)
+            self.adjustSize()
 
         self.frame_times.append(self.last_fps_time.msecsTo(QTime.currentTime()))
         self.last_fps_time = QTime.currentTime()        
