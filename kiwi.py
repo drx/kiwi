@@ -4,11 +4,9 @@ from ctypes import *
 from zipfile import is_zipfile, ZipFile
 
 md = CDLL('./megadrive.so')
+render_filters = ('None', 'EPX', 'hq4x')
 
-
-screen_buffer = create_string_buffer(320*240*3)
-md.vdp_set_screen(screen_buffer)
-
+screen_buffer = create_string_buffer(320*240*4)
 
 def m68k_status():
     registers = ['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7',
@@ -72,18 +70,11 @@ keymap = {
         Qt.Key_Q: 'start',
         }
 
-def blit_screen(label, zoom_level):
-    ppm = 'P6 320 240 255 '+screen_buffer.raw
-
-    qba = QByteArray()
-    qba.setRawData(ppm, len(ppm))
-
-    pixmap = QPixmap()
-    pixmap.loadFromData(qba)
-    pixmap = pixmap.scaled(320*zoom_level, 240*zoom_level)
+def blit_screen(label, scaled_buffer, zoom_level):
+    image = QImage(scaled_buffer, 320*zoom_level, 240*zoom_level, QImage.Format_RGB32)
+    pixmap = QPixmap.fromImage(image)
     label.setPixmap(pixmap)
 
-    del qba
 
 class Display(QWidget):
     def __init__(self, parent=None):
@@ -92,8 +83,11 @@ class Display(QWidget):
         self.frames = 0
         self.pause_emulation = False
         self.zoom_level = 2
+        self.render_filter = None
         self.rom_fn = ''
         self.debug = False
+
+        self.set_vdp_buffers()
 
         timer = QTimer(self)
         timer.timeout.connect(self.frame)
@@ -159,7 +153,7 @@ class Display(QWidget):
 
         render_group = QActionGroup(self)
         render_group.triggered.connect(self.set_render_filter)
-        for render_filter in ('None', 'hq4x'):
+        for render_filter in render_filters:
             action = QAction(render_filter, render_group)
             action.setCheckable(True)
             render_menu.addAction(action)
@@ -187,7 +181,15 @@ class Display(QWidget):
 
     @Slot()
     def set_render_filter(self, action):
-        pass
+        render_filter = action.text()
+        if render_filter not in render_filters:
+            return
+
+        if render_filter == 'None':
+            render_filter = None
+
+        self.render_filter = render_filter
+
 
     @Slot()
     def set_zoom_level(self, action):
@@ -195,8 +197,13 @@ class Display(QWidget):
             self.zoom_level = {'1x': 1, '2x': 2, '3x': 3, '4x': 4}[action.text()]
             self.layout.setRowMinimumHeight(0, self.zoom_level*240)
             self.layout.setColumnMinimumWidth(1, self.zoom_level*320-10)
+
         except KeyError:
             pass
+
+    def set_vdp_buffers(self):
+        self.scaled_buffer = create_string_buffer(320*240*4*self.zoom_level*self.zoom_level)
+        md.vdp_set_buffers(screen_buffer, self.scaled_buffer)
 
     @Slot()
     def open_file(self):
@@ -265,7 +272,8 @@ class Display(QWidget):
             self.palette_debug.update()
 
         if self.rom_fn:
-            blit_screen(self.label, self.zoom_level)
+            md.scale_filter(c_char_p(self.render_filter), self.zoom_level)
+            blit_screen(self.label, self.scaled_buffer.raw, self.zoom_level)
             self.adjustSize()
 
         self.frame_times.append(self.last_fps_time.msecsTo(QTime.currentTime()))

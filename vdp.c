@@ -6,7 +6,7 @@ unsigned short CRAM[0x40];
 unsigned short VSRAM[0x40];
 unsigned char vdp_reg[0x20];
 
-unsigned char *screen;
+unsigned char *screen, *scaled_screen;
 
 int control_code = 0;
 unsigned int control_address = 0;
@@ -24,9 +24,9 @@ int dma_fill = 0;
 #define set_pixel(scr, x, y, index) \
     do {\
         int pixel = ((240-screen_height)/2+(y))*320+(x)+(320-screen_width)/2; \
-        scr[pixel*3] = (CRAM[index]<<4)&0xe0; \
-        scr[pixel*3+1] = (CRAM[index])&0xe0; \
-        scr[pixel*3+2] = (CRAM[index]>>4)&0xe0; \
+        scr[pixel*4+0] = (CRAM[index]>>4)&0xe0; \
+        scr[pixel*4+1] = (CRAM[index])&0xe0; \
+        scr[pixel*4+2] = (CRAM[index]<<4)&0xe0; \
     } while(0);
 
 void draw_cell_pixel(unsigned int cell, int cell_x, int cell_y, int x, int y)
@@ -204,9 +204,10 @@ void vdp_render_line(int line)
 }
 
 
-void vdp_set_screen(unsigned char* buf)
+void vdp_set_buffers(unsigned char *screen_buffer, unsigned char *scaled_buffer)
 {
-    screen = buf;
+    screen = screen_buffer;
+    scaled_screen = scaled_buffer;
 }
 
 void vdp_debug_status(char *s)
