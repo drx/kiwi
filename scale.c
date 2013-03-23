@@ -1,8 +1,11 @@
 #include <string.h>
+#include <stdlib.h>
+#include <hqx/hqx.h>
 
 extern unsigned int *screen, *scaled_screen;
 
 const int width = 320, height = 240;
+int hqx_init = 0;
 
 /* 
  * The nearest-neightbor naive scaling algorithm.
@@ -60,11 +63,10 @@ void scale_nearest(unsigned int *dest, unsigned int *src, int scale)
  * 4x is 2x applied twice
  */
 #define get_pixel(dx, dy) \
-    (((x)+(dx) < 0 || (x)+(dx) >= width || (y)+(dy) < 0 || (y)+(dy) >= height) ? 0 : \
-        src[(y+dy)*width+x+dx])
+    (((x)+(dx) < 0 || (x)+(dx) >= w || (y)+(dy) < 0 || (y)+(dy) >= h) ? 0 : \
+        src[(y+dy)*w+x+dx])
 
 #define epx_pixel(i) get_pixel(row[i].x, row[i].y)
-
 
 struct point {
     int x;
@@ -76,29 +78,131 @@ struct point {
     {{0, 1}, {1, 0}, {0, -1}, {-1, 0}},
 };
 
-void scale_epx(unsigned int *dest, unsigned int *src, int scale)
-{
-    for (int y=0; y<height; y++)
-    {
-        for (int x=0; x<width; x++)
-        {
-            for (int i=0; i<scale; i++)
-            {
-                for (int j=0; j<scale; j++)
-                {
-                    unsigned int pixel = get_pixel(0, 0);
-                    struct point *row = epx_table_2x[i*2+j];
-                    if (epx_pixel(1) == epx_pixel(0) && 
-                            epx_pixel(1) != epx_pixel(2) &&
-                            epx_pixel(0) != epx_pixel(3))
-                    {
-                        pixel = epx_pixel(0);
-                    }
+struct point epx_table_3x[4][2] = {
+    {{1, -1}, {-1, -1}}, 
+    {{-1, -1}, {-1, 1}}, 
+    {{1, 1}, {1, -1}}, 
+    {{-1, 1}, {1, 1}}
+};
 
-                    dest[(y*scale+i)*width*scale+x*scale+j] = pixel;
+int epx_rotation[4] = {1, 3, 0, 2};
+int epx_corners_3x[9] = {0, -1, 1, -1, -1, -1, 2, -1, 3};
+
+void scale_epx_hw(unsigned int *dest, unsigned int *src, int scale, int h, int w)
+{
+    if (scale == 3)
+    {
+        for (int y=0; y<h; y++)
+        {
+            for (int x=0; x<w; x++)
+            {
+                for (int i=0; i<scale; i++)
+                {
+                    for (int j=0; j<scale; j++)
+                    {
+                        unsigned int pixel;
+                        pixel = get_pixel(0, 0);
+                        int k = i*3+j;
+                        if (!(k & 1) && k != 4)
+                        {
+                            struct point *row = epx_table_2x[epx_corners_3x[k]];
+                            if (epx_pixel(1) == epx_pixel(0) && 
+                                    epx_pixel(1) != epx_pixel(2) &&
+                                    epx_pixel(0) != epx_pixel(3))
+                            {
+                                pixel = epx_pixel(0);
+                            }
+                        }
+                        else if (k & 1)
+                        {
+                            struct point *row_3x = epx_table_3x[k>>1];
+                            struct point *row;
+                            row = epx_table_2x[k>>1];
+                            if (epx_pixel(1) == epx_pixel(0) && 
+                                    epx_pixel(1) != epx_pixel(2) &&
+                                    epx_pixel(0) != epx_pixel(3) &&
+                                    get_pixel(0, 0) != get_pixel(row_3x[0].x, row_3x[0].y))
+                            {
+                                pixel = epx_pixel(1);
+                            }
+
+                            row = epx_table_2x[epx_rotation[k]];
+                            if (epx_pixel(1) == epx_pixel(0) && 
+                                    epx_pixel(1) != epx_pixel(2) &&
+                                    epx_pixel(0) != epx_pixel(3) &&
+                                    get_pixel(0, 0) != get_pixel(row_3x[1].x, row_3x[1].y))
+                            {
+                                pixel = epx_pixel(0);
+                            }
+                        }
+                        dest[(y*scale+i)*w*scale+x*scale+j] = pixel;
+                    }
                 }
             }
         }
+    }
+    else if (scale == 2)
+    {
+        for (int y=0; y<h; y++)
+        {
+            for (int x=0; x<w; x++)
+            {
+                for (int i=0; i<scale; i++)
+                {
+                    for (int j=0; j<scale; j++)
+                    {
+                        unsigned int pixel;
+                        struct point *row = epx_table_2x[i*2+j];
+                        if (epx_pixel(1) == epx_pixel(0) && 
+                                epx_pixel(1) != epx_pixel(2) &&
+                                epx_pixel(0) != epx_pixel(3))
+                        {
+                            pixel = epx_pixel(0);
+                        }
+                        else
+                        {
+                            pixel = get_pixel(0, 0);
+                        }
+
+                        dest[(y*scale+i)*w*scale+x*scale+j] = pixel;
+                    }
+                }
+            }
+        }
+    }
+    else if (scale == 4)
+    {
+        unsigned int *temp_buf = malloc(sizeof(unsigned int)*width*height*4);
+        scale_epx_hw(temp_buf, src, 2, h, w);
+        scale_epx_hw(dest, temp_buf, 2, h*2, w*2);
+        free(temp_buf);
+    }
+}
+
+void scale_epx(unsigned int *dest, unsigned int *src, int scale)
+{
+    scale_epx_hw(dest, src, scale, height, width);
+}
+
+void scale_hqx(unsigned int *dest, unsigned int *src, int scale)
+{
+    if (!hqx_init)
+    {
+        hqxInit();
+        hqx_init = 1;
+    }
+
+    if (scale == 2)
+    {
+        hq2x_32(src, dest, width, height);
+    }
+    else if (scale == 3)
+    {
+        hq3x_32(src, dest, width, height);
+    }
+    else if (scale == 4)
+    {
+        hq4x_32(src, dest, width, height);
     }
 }
 
@@ -108,7 +212,8 @@ struct s_filters
     void (*fn)(unsigned int *, unsigned int *, int);
 } filters[] = {
     {"None", scale_nearest},
-    {"EPX", scale_epx}
+    {"EPX", scale_epx},
+    {"hqx", scale_hqx}
 };
 
 void scale_filter(const char *filter, int scale)

@@ -4,7 +4,7 @@ from ctypes import *
 from zipfile import is_zipfile, ZipFile
 
 md = CDLL('./megadrive.so')
-render_filters = ('None', 'EPX', 'hq4x')
+render_filters = ('None', 'EPX', 'hqx')
 
 screen_buffer = create_string_buffer(320*240*4)
 
