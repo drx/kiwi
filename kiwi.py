@@ -83,7 +83,7 @@ class Display(QWidget):
         self.frames = 0
         self.pause_emulation = False
         self.zoom_level = 2
-        self.render_filter = None
+        self.render_filter = 'None'
         self.rom_fn = ''
         self.debug = False
 
@@ -153,8 +153,10 @@ class Display(QWidget):
 
         render_group = QActionGroup(self)
         render_group.triggered.connect(self.set_render_filter)
-        for render_filter in render_filters:
+        for i, render_filter in enumerate(render_filters):
             action = QAction(render_filter, render_group)
+            if i < 9:
+                action.setShortcut(QKeySequence('Ctrl+{0}'.format(i+1)))
             action.setCheckable(True)
             render_menu.addAction(action)
             if render_filter == 'None':
@@ -185,9 +187,6 @@ class Display(QWidget):
         if render_filter not in render_filters:
             return
 
-        if render_filter == 'None':
-            render_filter = None
-
         self.render_filter = render_filter
 
 
@@ -197,6 +196,7 @@ class Display(QWidget):
             self.zoom_level = {'1x': 1, '2x': 2, '3x': 3, '4x': 4}[action.text()]
             self.layout.setRowMinimumHeight(0, self.zoom_level*240)
             self.layout.setColumnMinimumWidth(1, self.zoom_level*320-10)
+            self.set_vdp_buffers()
 
         except KeyError:
             pass

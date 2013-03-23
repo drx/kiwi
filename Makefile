@@ -1,6 +1,6 @@
 CC =     cc
 WARNINGS = -Wall -pedantic
-CFLAGS = $(WARNINGS) -c -Im68k -I.
+CFLAGS = $(WARNINGS) -c -Im68k -I. -O2
 
 all: megadrive.so
 
