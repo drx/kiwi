@@ -220,7 +220,7 @@ void scale_filter(const char *filter, int scale)
 {
     for (int i=0; i<sizeof(filters)/sizeof(struct s_filters); i++)
     {
-        if (!strcmp(filter, filters[i].name))
+        if (!strcmp(filter, filters[i].name) || scale == 1)
         {
             (filters[i].fn)(scaled_screen, screen, scale);
             break;
