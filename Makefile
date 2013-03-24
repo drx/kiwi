@@ -5,7 +5,7 @@ CFLAGS = $(WARNINGS) -c -Im68k -I. -O2
 all: megadrive.so
 
 clean:
-	rm megadrive.so *.o m68k/*.o
+	rm megadrive.so *.o m68k/*.o hqx/*.o
 
 megadrive.so: m68k/m68kcpu.o m68k/m68kops.o m68k/m68kopac.o m68k/m68kopdm.o m68k/m68kopnz.o m68k/m68kdasm.o megadrive.o vdp.o input.o scale.o z80.o hqx/init.o hqx/hq2x.o hqx/hq3x.o hqx/hq4x.o
 		$(CC) m68k/m68kcpu.o m68k/m68kops.o m68k/m68kopac.o m68k/m68kopdm.o m68k/m68kopnz.o m68k/m68kdasm.o megadrive.o vdp.o input.o scale.o z80.o hqx/init.o hqx/hq2x.o hqx/hq3x.o hqx/hq4x.o -shared -o megadrive.so
