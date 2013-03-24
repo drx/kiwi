@@ -2,6 +2,7 @@
 import sys
 from ctypes import *
 from zipfile import is_zipfile, ZipFile
+from collections import OrderedDict
 
 md = CDLL('./megadrive.so')
 render_filters = ('None', 'EPX', 'hqx')
@@ -59,22 +60,39 @@ class PaletteDebug(QWidget):
         qp.end()
 
 buttons = ['up', 'down', 'left', 'right', 'b', 'c', 'a', 'start']
-keymap = {
-        Qt.Key_Left: 'left',
-        Qt.Key_Right: 'right',
-        Qt.Key_Up: 'up',
-        Qt.Key_Down: 'down',
-        Qt.Key_Z: 'a',
-        Qt.Key_X: 'b',
-        Qt.Key_C: 'c',
-        Qt.Key_Q: 'start',
-        }
+keymap = OrderedDict((
+        ('left', (Qt.Key_Left, Qt.Key_J)),
+        ('right', (Qt.Key_Right, Qt.Key_L)),
+        ('up', (Qt.Key_Up, Qt.Key_I)),
+        ('down', (Qt.Key_Down, Qt.Key_K)),
+        ('a', (Qt.Key_Z, Qt.Key_F)),
+        ('b', (Qt.Key_X, Qt.Key_G)),
+        ('c', (Qt.Key_C, Qt.Key_H)),
+        ('start', (Qt.Key_Q, Qt.Key_W)),
+        ))
+
+keymap_r = {}
+for button, keys in keymap.items():
+    keymap_r[keys[0]] = (button, 0)
+    keymap_r[keys[1]] = (button, 1)
 
 def blit_screen(label, scaled_buffer, zoom_level):
     image = QImage(scaled_buffer, 320*zoom_level, 240*zoom_level, QImage.Format_RGB32)
     pixmap = QPixmap.fromImage(image)
     label.setPixmap(pixmap)
 
+class Controllers(QLabel):
+    def __init__(self, parent=None):
+        super(Controllers, self).__init__(parent)
+
+        text = '<table style="background-color: #222; color: #ddd"><tr><td valign="middle" style="padding: 10"><img src="images/megadrive.jpg"></td><td>'
+        text += '<table style="font-family: Verdana" cellpadding="10">'
+        text += '<tr style="color: #9b4"><th>Button</th><th>Player 1 Key</th><th>Player 2 Key</th></tr>'
+        for button, keys in keymap.items():
+            text += '<tr><td>{0}</td><td>{1}</td><td>{2}</td></tr>'.format(button.title(), QKeySequence(keys[0]).toString(), QKeySequence(keys[1]).toString())
+        text += '</table></td></tr></table>'
+        self.setText(text)
+        self.setWindowTitle('Controllers')
 
 class Display(QWidget):
     def __init__(self, parent=None):
@@ -106,7 +124,7 @@ class Display(QWidget):
 
         self.palette_debug = PaletteDebug()
 
-        self.label = QLabel("<b style='color: #eee'>Welcome to <span style='color: #9b4'>Kiwi</span>!</b><br><br>Press O to open a ROM")
+        self.label = QLabel("<b style='color: #eee'>Welcome to <span style='color: #9b4'>Kiwi</span>!</b>")
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setStyleSheet("background-color: #222; color: #ddd; font-family: Verdana")
         self.label.show()
@@ -133,6 +151,7 @@ class Display(QWidget):
         self.menubar = QMenuBar()
         file_menu = self.menubar.addMenu('&File')
         options_menu = self.menubar.addMenu('&Options')
+        help_menu = self.menubar.addMenu('&Help')
         zoom_menu = options_menu.addMenu('Video zoom')
         render_menu = options_menu.addMenu('Rendering filter')
         file_menu.addAction('Open ROM', self, SLOT('open_file()'), QKeySequence.Open)
@@ -163,10 +182,17 @@ class Display(QWidget):
                 action.setChecked(True)
 
         options_menu.addAction('Show debug information', self, SLOT('toggle_debug()'), QKeySequence('Ctrl+D')).setCheckable(True)
+        help_menu.addAction('Controllers', self, SLOT('show_controllers()'), QKeySequence('Ctrl+I'))
 
     @Slot()
     def quit(self):
         app.quit()
+
+    @Slot()
+    def show_controllers(self):
+        self.controllers_window = Controllers()
+        self.controllers_window.show()
+
 
     @Slot()
     def toggle_debug(self):
@@ -236,7 +262,8 @@ class Display(QWidget):
 
     def keyPressEvent(self, event):
         try:
-            md.pad_press_button(0, buttons.index(keymap[event.key()]))
+            key, pad = keymap_r[event.key()]
+            md.pad_press_button(pad, buttons.index(key))
         except KeyError:
             if event.key() == Qt.Key_Space:
                 if self.pause_emulation:
@@ -249,7 +276,8 @@ class Display(QWidget):
         
     def keyReleaseEvent(self, event):
         try:
-            md.pad_release_button(0, buttons.index(keymap[event.key()]))
+            key, pad = keymap_r[event.key()]
+            md.pad_release_button(pad, buttons.index(key))
         except KeyError:
             super(Display, self).keyReleaseEvent(event)
 
