@@ -53,7 +53,7 @@ class Controllers(QLabel):
     def __init__(self, parent=None):
         super(Controllers, self).__init__(parent)
 
-        text = '<table style="background-color: #222; color: #ddd"><tr><td valign="middle" style="padding: 10"><img src="images/megadrive.jpg"></td><td>'
+        text = '<table style="background-color: #222; color: #ddd"><tr><td valign="middle" style="padding: 10"><img src="images/pad.png"></td><td>'
         text += '<table style="font-family: Verdana" cellpadding="10">'
         text += '<tr style="color: #9b4"><th>Button</th><th>Player 1 Key</th><th>Player 2 Key</th></tr>'
         for button, keys in keymap.items():
