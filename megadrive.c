@@ -1,5 +1,9 @@
 #include <stdio.h>
 #include <string.h>
+#include "m68k/m68k.h"
+#include "z80.h"
+#include "VDP.h"
+#include "input.h"
 
 /*
  * Megadrive memory map as well as main execution loop.

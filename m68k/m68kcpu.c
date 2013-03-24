@@ -625,7 +625,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 int m68k_execute(int num_cycles)
 {
     extern int cycle_counter;
-    num_cycles /= 7; // num_cycles is given in M cycles
+    num_cycles /= 7; /* num_cycles is given in M cycles */
 
 	/* Make sure we're not stopped */
 	if(!CPU_STOPPED)

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "m68k/m68k.h"
+#include "VDP.h"
 
 /*
  * Megadrive VDP emulation
@@ -241,13 +242,6 @@ void vdp_debug_status(char *s)
         s += sprintf(s, "%02x ", vdp_reg[i]);
     }
 }
-
-enum ram_type {
-    T_VRAM,
-    T_CRAM,
-    T_VSRAM
-};
-
 
 void vdp_data_write(unsigned int value, enum ram_type type, int dma)
 {

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "input.h"
 
 /*
  * Sega Megadrive joypad support

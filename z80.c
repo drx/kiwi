@@ -1,3 +1,5 @@
+#include "z80.h"
+
 int bus_ack = 0;
 int reset = 0;
 
