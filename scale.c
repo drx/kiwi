@@ -184,6 +184,9 @@ void scale_epx(unsigned int *dest, unsigned int *src, int scale)
     scale_epx_hw(dest, src, scale, height, width);
 }
 
+/* 
+ * The hqx scaling algorithm, provided by the hqx library (http://code.google.com/p/hqx/)
+ */
 void scale_hqx(unsigned int *dest, unsigned int *src, int scale)
 {
     if (!hqx_init)

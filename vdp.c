@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include "m68k/m68k.h"
 
+/*
+ * Megadrive VDP emulation
+ */
+
 unsigned char VRAM[0x10000];
 unsigned short CRAM[0x40];
 unsigned short VSRAM[0x40];
@@ -20,7 +24,7 @@ int dma_length;
 unsigned int dma_source;
 int dma_fill = 0;
 
-
+/* Set a pixel on the screen using the Color RAM */
 #define set_pixel(scr, x, y, index) \
     do {\
         int pixel = ((240-screen_height)/2+(y))*320+(x)+(320-screen_width)/2; \
@@ -29,12 +33,15 @@ int dma_fill = 0;
         scr[pixel*4+2] = (CRAM[index]<<4)&0xe0; \
     } while(0);
 
+/*
+ * Draw a single pixel of a cell 
+ */
 void draw_cell_pixel(unsigned int cell, int cell_x, int cell_y, int x, int y)
 {
     unsigned char *pattern = &VRAM[0x20*(cell&0x7ff)];
 
     int pattern_index = 0;
-    if (cell & 0x1000)  // v flip
+    if (cell & 0x1000)  /* v flip */
         pattern_index = (7-(cell_y&7))<<2;
     else
         pattern_index = (cell_y&7)<<2; 
@@ -55,6 +62,9 @@ void draw_cell_pixel(unsigned int cell, int cell_x, int cell_y, int x, int y)
     }
 }
 
+/*
+ * Render the scroll layers (plane A and B)
+ */
 void vdp_render_bg(int line, int priority)
 {
     int h_cells = 32, v_cells = 32;
@@ -115,6 +125,9 @@ void vdp_render_bg(int line, int priority)
     }
 }
 
+/*
+ * Render part of a sprite on a given line.
+ */
 void vdp_render_sprite(int sprite_index, int line)
 {
     unsigned char *sprite = &VRAM[(vdp_reg[5] << 9) + sprite_index*8];
@@ -154,6 +167,9 @@ void vdp_render_sprite(int sprite_index, int line)
 
 }
 
+/*
+ * Render the sprite layer.
+ */
 void vdp_render_sprites(int line, int priority)
 {
     unsigned char *sprite_table = &VRAM[vdp_reg[5] << 9];
@@ -190,8 +206,12 @@ void vdp_render_sprites(int line, int priority)
     }
 }
 
+/*
+ * Render a single line.
+ */
 void vdp_render_line(int line)
 {
+    /* Fill the screen with the backdrop color set in register 7 */
     for (int i=0; i<screen_width; i++)
     {
         set_pixel(screen, i, line, vdp_reg[7]&0x3f);
@@ -202,7 +222,6 @@ void vdp_render_line(int line)
     vdp_render_bg(line, 1);
     vdp_render_sprites(line, 1);
 }
-
 
 void vdp_set_buffers(unsigned char *screen_buffer, unsigned char *scaled_buffer)
 {
@@ -232,16 +251,16 @@ enum ram_type {
 
 void vdp_data_write(unsigned int value, enum ram_type type, int dma)
 {
-    if (type == T_VRAM)  // VRAM write
+    if (type == T_VRAM)  /* VRAM write */
     {
         VRAM[control_address] = (value >> 8) & 0xff;
         VRAM[control_address+1] = (value) & 0xff;
     }
-    else if (type == T_CRAM)  // CRAM write
+    else if (type == T_CRAM)  /* CRAM write */
     {
         CRAM[(control_address & 0x7f) >> 1] = value;
     }
-    else if (type == T_VSRAM)  // VSRAM write
+    else if (type == T_VSRAM)  /* VSRAM write */
     {
         VSRAM[(control_address & 0x7f) >> 1] = value;
     }
@@ -249,18 +268,18 @@ void vdp_data_write(unsigned int value, enum ram_type type, int dma)
 
 void vdp_data_port_write(unsigned int value)
 {
-    if (control_code & 1)  // check if write is set
+    if (control_code & 1)  /* check if write is set */
     {
         enum ram_type type;
-        if ((control_code & 0xe) == 0)  // VRAM write
+        if ((control_code & 0xe) == 0)  /* VRAM write */
         {
             type = T_VRAM;
         }
-        else if ((control_code & 0xe) == 2)  // CRAM write
+        else if ((control_code & 0xe) == 2)  /* CRAM write */
         {
             type = T_CRAM;
         }
-        else if ((control_code & 0xe) == 4)  // VSRAM write
+        else if ((control_code & 0xe) == 4)  /* VSRAM write */
         {
             type = T_VSRAM;
         }
@@ -269,6 +288,7 @@ void vdp_data_port_write(unsigned int value)
     control_address = (control_address + vdp_reg[15]) & 0xffff;
     control_pending = 0;
 
+    /* if a DMA is scheduled, do it */
     if (dma_fill)
     {
         dma_fill = 0;
@@ -323,17 +343,17 @@ void vdp_control_write(unsigned int value)
         {
             if ((vdp_reg[23] >> 6) == 2 && (control_code & 7) == 1)
             {
-                // DMA fill
+                /* DMA fill */
                 dma_fill = 1;
             }
             else if ((vdp_reg[23] >> 6) == 3)
             {
-                // DMA copy
+                /* DMA copy */
                 printf("DMA copy\n");
             }
             else 
             {
-                // DMA 68k -> VDP
+                /* DMA 68k -> VDP */
                 dma_length = vdp_reg[19] | (vdp_reg[20] << 8);
                 dma_source = (vdp_reg[21]<<1) | (vdp_reg[22]<<9) | (vdp_reg[23]<<17);
 
@@ -389,14 +409,15 @@ unsigned int vdp_read(unsigned int address)
 
     if (0 && address < 0x04)
     {
-        //vdp_data_write(value);
     }
     else if (address >= 0x04 && address < 0x08)
     {
+        /* VDP status */
         return vdp_status;
     }
     else if (address >= 0x08 && address < 0x10)
     {
+        /* V/H counter */
         extern int cycle_counter;
         extern int lines_per_frame;
         extern int MCYCLES_PER_LINE;

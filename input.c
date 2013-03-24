@@ -1,5 +1,9 @@
 #include <stdio.h>
 
+/*
+ * Sega Megadrive joypad support
+ */
+
 enum pad_button
 {
     PAD_UP,
@@ -14,7 +18,7 @@ enum pad_button
 
 unsigned short button_state[3];
 unsigned short pad_state[3];
-unsigned char io_reg[16] = {0xa0, 0x7f, 0x7f, 0x7f, 0, 0, 0, 0xff, 0, 0, 0xff, 0, 0, 0xff, 0, 0};
+unsigned char io_reg[16] = {0xa0, 0x7f, 0x7f, 0x7f, 0, 0, 0, 0xff, 0, 0, 0xff, 0, 0, 0xff, 0, 0}; /* initial state */
 
 void pad_press_button(int pad, int button)
 {
@@ -58,14 +62,14 @@ void io_write_memory(unsigned int address, unsigned int value)
 
     if (address >= 0x1 && address < 0x4)
     {
-        // port data
+        /* port data */
         io_reg[address] = value;
         pad_write(address-1, value);
         return;
     }
     else if (address >= 0x4 && address < 0x7)
     {
-        // port ctrl
+        /* port ctrl */
         if (io_reg[address] != value)
         {
             io_reg[address] = value;

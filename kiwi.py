@@ -3,62 +3,20 @@ import sys
 from ctypes import *
 from zipfile import is_zipfile, ZipFile
 from collections import OrderedDict
+from PySide.QtCore import *
+from PySide.QtGui import *
+from debug import *
+
+'''
+The Kiwi emulator
+'''
 
 md = CDLL('./megadrive.so')
 render_filters = ('None', 'EPX', 'hqx')
 
-screen_buffer = create_string_buffer(320*240*4)
+screen_buffer = create_string_buffer(320*240*4)  # allocate screen buffer
 
-def m68k_status():
-    registers = ['d0', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7',
-            'a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7',
-            'pc', 'sr', 'sp', 'usp']
-
-    status = ''
-    pc = 0
-    for reg_i, register in enumerate(registers):
-        if reg_i%4 == 0:
-            status += '\n'
-        value = md.m68k_get_reg(0, reg_i)
-        status += '{0}={1:08x} '.format(register, value&0xffffffff)
-        if register == 'pc':
-            pc = value
-
-    lines = []
-    for i in range(4):
-        disasm = create_string_buffer(1024)
-        old_pc = pc
-        pc += md.m68k_disassemble(disasm, pc, 1)
-        lines.append('{:06x}: {}'.format(old_pc, disasm.value.lower()))
-    status = '> {}\n{}'.format('\n'.join(lines), status)
-
-    return status
-
-import sys
-from PySide.QtCore import *
-from PySide.QtGui import *
-
-class PaletteDebug(QWidget):
-    def __init__(self):
-        super(PaletteDebug, self).__init__()
-        self.show()
-        
-    def paintEvent(self, e):
-        qp = QPainter()
-        qp.begin(self)
-        color = QColor(0, 0, 0, 0)
-        qp.setPen(color)
-
-        for y in range(4):
-            for x in range(16):
-                color = md.vdp_get_cram(y*16+x)
-                red, green, blue = color >> 8, color >> 4, color
-                red, green, blue = (blue&15)*16, (green&15)*16, (red&15)*16
-                qp.setBrush(QColor(red, green, blue))
-                qp.drawRect(x*16, y*16, 16, 16)
-
-        qp.end()
-
+# keyboard mappings
 buttons = ['up', 'down', 'left', 'right', 'b', 'c', 'a', 'start']
 keymap = OrderedDict((
         ('left', (Qt.Key_Left, Qt.Key_J)),
@@ -77,11 +35,21 @@ for button, keys in keymap.items():
     keymap_r[keys[1]] = (button, 1)
 
 def blit_screen(label, scaled_buffer, zoom_level):
+    '''
+    Blits the screen to a QLabel.
+
+    Creates a QImage from a RGB32 formatted buffer, creates a QPixmap from the QImage
+    and loads the pixmap into a QLabel.
+    '''
     image = QImage(scaled_buffer, 320*zoom_level, 240*zoom_level, QImage.Format_RGB32)
     pixmap = QPixmap.fromImage(image)
+
     label.setPixmap(pixmap)
 
 class Controllers(QLabel):
+    '''
+    Controller mapping help window.
+    '''
     def __init__(self, parent=None):
         super(Controllers, self).__init__(parent)
 
@@ -95,6 +63,11 @@ class Controllers(QLabel):
         self.setWindowTitle('Controllers')
 
 class Display(QWidget):
+    '''
+    The main window.
+
+    Handles the menu bar, keyboard input and displays the screen.
+    '''
     def __init__(self, parent=None):
         super(Display, self).__init__(parent)
 
@@ -148,6 +121,9 @@ class Display(QWidget):
 
 
     def create_menus(self):
+        '''
+        Create the menu bar.
+        '''
         self.menubar = QMenuBar()
         file_menu = self.menubar.addMenu('&File')
         options_menu = self.menubar.addMenu('&Options')
@@ -228,11 +204,17 @@ class Display(QWidget):
             pass
 
     def set_vdp_buffers(self):
+        '''
+        Allocate buffer for upscaled image and set the VDP buffers.
+        '''
         self.scaled_buffer = create_string_buffer(320*240*4*self.zoom_level*self.zoom_level)
         md.vdp_set_buffers(screen_buffer, self.scaled_buffer)
 
     @Slot()
     def open_file(self):
+        '''
+        Open a ROM.
+        '''
         import os
         rom_fn, _ = QFileDialog.getOpenFileName(self, "Open ROM", os.getcwd(), "Sega Genesis ROMs (*.bin *.gen *.zip)")
 
@@ -242,6 +224,7 @@ class Display(QWidget):
         self.rom_fn = rom_fn
 
         if is_zipfile(rom_fn):
+            # if the file is a ZIP, try to open the largest file inside
             zipfile = ZipFile(rom_fn, 'r')
             contents = [(f.file_size, f.filename) for f in zipfile.infolist()]
             contents.sort(reverse=True)
@@ -292,6 +275,12 @@ class Display(QWidget):
         return ' '.join(values)
 
     def frame(self):
+        '''
+        Do a single frame.
+
+        Perform a Megadrive frame, upscale the screen if necessary.
+        Update debug information if debug is on.
+        '''
         if not self.pause_emulation and self.rom_fn:
             md.frame()
             self.frames += 1
@@ -312,7 +301,6 @@ class Display(QWidget):
             md.vdp_debug_status(vdp_status)
             if self.frames % 2:
                 self.debug_label.setText('Frame: {} (fps: {})\n\n{}\n\n{}'.format(self.frames, self.show_fps(), vdp_status.value, m68k_status()))
-
 
 
 app = QApplication(sys.argv)
