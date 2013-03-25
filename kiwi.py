@@ -5,7 +5,6 @@ from zipfile import is_zipfile, ZipFile
 from collections import OrderedDict
 from PySide.QtCore import *
 from PySide.QtGui import *
-from debug import *
 
 '''
 The Kiwi emulator
