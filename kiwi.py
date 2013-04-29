@@ -70,6 +70,7 @@ class Display(QWidget):
     def __init__(self, parent=None):
         super(Display, self).__init__(parent)
 
+        self.parent = parent
         self.frames = 0
         self.pause_emulation = False
         self.zoom_level = 2
@@ -123,7 +124,7 @@ class Display(QWidget):
         '''
         Create the menu bar.
         '''
-        self.menubar = QMenuBar()
+        self.menubar = self.parent.menuBar()
         file_menu = self.menubar.addMenu('&File')
         options_menu = self.menubar.addMenu('&Options')
         help_menu = self.menubar.addMenu('&Help')
@@ -355,8 +356,14 @@ class PaletteDebug(QWidget):
         qp.end()
 
 
+class MainWindow(QMainWindow):
+    def __init__(self, *args, **kwargs):
+        QMainWindow.__init__(self, *args, **kwargs)
+        self.display = Display(self)
+        self.setCentralWidget(self.display)
+
 app = QApplication(sys.argv)
-display = Display()
-display.show()
-display.raise_()
+main_window = MainWindow()
+main_window.show()
+main_window.raise_()
 app.exec_()
