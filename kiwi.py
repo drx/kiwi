@@ -243,27 +243,6 @@ class Display(QWidget):
     def toggle_pause(self):
         self.pause_emulation = not self.pause_emulation
 
-    def keyPressEvent(self, event):
-        try:
-            key, pad = keymap_r[event.key()]
-            md.pad_press_button(pad, buttons.index(key))
-        except KeyError:
-            if event.key() == Qt.Key_Space:
-                if self.pause_emulation:
-                    md.m68k_execute(7)
-                else:
-                    self.turbo = not self.turbo
-                    self.timer.setInterval(4 if self.turbo else 16.67)
-            else:
-                super(Display, self).keyPressEvent(event)
-        
-    def keyReleaseEvent(self, event):
-        try:
-            key, pad = keymap_r[event.key()]
-            md.pad_release_button(pad, buttons.index(key))
-        except KeyError:
-            super(Display, self).keyReleaseEvent(event)
-
     def show_fps(self):
         from itertools import islice
         values = []
@@ -292,6 +271,7 @@ class Display(QWidget):
             md.scale_filter(c_char_p(self.render_filter), self.zoom_level)
             blit_screen(self.label, self.scaled_buffer.raw, self.zoom_level)
             self.adjustSize()
+            self.parent.adjustSize()
 
         self.frame_times.append(self.last_fps_time.msecsTo(QTime.currentTime()))
         self.last_fps_time = QTime.currentTime()        
@@ -361,6 +341,28 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self, *args, **kwargs)
         self.display = Display(self)
         self.setCentralWidget(self.display)
+
+    def keyPressEvent(self, event):
+        try:
+            key, pad = keymap_r[event.key()]
+            md.pad_press_button(pad, buttons.index(key))
+        except KeyError:
+            if event.key() == Qt.Key_Space:
+                if self.display.pause_emulation:
+                    md.m68k_execute(7)
+                else:
+                    self.display.turbo = not self.display.turbo
+                    self.display.timer.setInterval(4 if self.display.turbo else 16.67)
+            else:
+                super(MainWindow, self).keyPressEvent(event)
+        
+    def keyReleaseEvent(self, event):
+        try:
+            key, pad = keymap_r[event.key()]
+            md.pad_release_button(pad, buttons.index(key))
+        except KeyError:
+            super(MainWindow, self).keyReleaseEvent(event)
+
 
 app = QApplication(sys.argv)
 main_window = MainWindow()
