@@ -6,7 +6,7 @@ Kiwi is a simple Sega Genesis emulator.
 
 ## Quick start
 
-1. Clone the repo (`git clone git://github.com/drx/emupie.git`) or [download the latest version](https://github.com/drx/emupie/zipball/master).
+1. Clone the repo (`git clone git://github.com/drx/kiwi.git`) or [download the latest version](https://github.com/drx/kiwi/zipball/master).
 2. Run make.
 3. `$ ./kiwi.py`
 
