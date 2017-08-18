@@ -1,6 +1,6 @@
-# The Kiwi emulator
+# Kiwi
 
-The Kiwi emulator is a simple Sega Genesis emulator.
+Kiwi is a simple Sega Genesis emulator.
 
 <table><tr><td align="center"><img src="/images/kiwi.gif?raw=true"><br>Kiwi in action</td></tr></table>
 
