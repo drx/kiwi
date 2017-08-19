@@ -364,8 +364,9 @@ class MainWindow(QMainWindow):
             super(MainWindow, self).keyReleaseEvent(event)
 
 
-app = QApplication(sys.argv)
-main_window = MainWindow()
-main_window.show()
-main_window.raise_()
-app.exec_()
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    main_window = MainWindow()
+    main_window.show()
+    main_window.raise_()
+    app.exec_()
