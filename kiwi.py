@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import os
+import re
 import sys
 from ctypes import *
 from zipfile import is_zipfile, ZipFile
@@ -157,7 +159,9 @@ class Display(QWidget):
             if render_filter == 'None':
                 action.setChecked(True)
 
+        options_menu.addAction('Save screenshot', self, SLOT('save_screenshot()'), QKeySequence('Ctrl+S'))
         options_menu.addAction('Show debug information', self, SLOT('toggle_debug()'), QKeySequence('Ctrl+D')).setCheckable(True)
+
         help_menu.addAction('Controllers', self, SLOT('show_controllers()'), QKeySequence('Ctrl+I'))
 
     @Slot()
@@ -215,7 +219,6 @@ class Display(QWidget):
         '''
         Open a ROM.
         '''
-        import os
         rom_fn, _ = QFileDialog.getOpenFileName(self, "Open ROM", os.getcwd(), "Sega Genesis ROMs (*.bin *.gen *.zip)")
 
         if not rom_fn:
@@ -242,6 +245,33 @@ class Display(QWidget):
     @Slot()
     def toggle_pause(self):
         self.pause_emulation = not self.pause_emulation
+
+    @Slot()
+    def save_screenshot(self, filename=None):
+        screenshot_dir = './screenshots'
+        if filename is None:
+            try:
+                os.mkdir(screenshot_dir)
+            except OSError:
+                pass
+
+            file_list = os.listdir(screenshot_dir)
+            max_index = 0
+
+            # Find the screenshot with the highest index
+            for fn in file_list:
+                match = re.match('screenshot([0-9]+).png', fn)
+                if match:
+                    index = int(match.group(1))
+                    if index > max_index:
+                        max_index = index
+
+            filename = os.path.join(screenshot_dir, 'screenshot{:04d}.png'.format(max_index+1))
+
+
+        image = QImage(self.scaled_buffer.raw, 320*self.zoom_level, 240*self.zoom_level, QImage.Format_RGB32)
+
+        image.save(filename)
 
     def show_fps(self):
         from itertools import islice
