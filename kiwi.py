@@ -268,8 +268,8 @@ class Display(QWidget):
 
             filename = os.path.join(screenshot_dir, 'screenshot{:04d}.png'.format(max_index+1))
 
-
-        image = QImage(self.scaled_buffer.raw, 320*self.zoom_level, 240*self.zoom_level, QImage.Format_RGB32)
+        buffer = self.scaled_buffer.raw
+        image = QImage(buffer, 320*self.zoom_level, 240*self.zoom_level, QImage.Format_RGB32).copy()
 
         image.save(filename)
 
