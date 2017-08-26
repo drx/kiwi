@@ -3,14 +3,15 @@ cache: pip
 python: 
   - "2.7"
 before_install:
-  - pip install cpp-coveralls
+  - pip install cpp-coveralls  # has to be installed before coveralls because of binary shadowing
+  - pip install coveralls
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
-  - sleep 3 # give xvfb some time to start
-
+  - sleep 3  # sleep so xvfb can start
 install:
   - pip install PySide pytest-qt pytest-mock
   - make COVERAGE=1
-script: pytest -v -s
+script: coverage run --source . -m py.test
 after_success:
-  - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
+  - cpp-coveralls --exclude m68k --exclude hqx --gcov-options '\-lp' --dump cpp.json
+  - coveralls --merge=cpp.json
