@@ -8,14 +8,16 @@ Kiwi is a simple Sega Genesis emulator.
 
 ## Quick start
 
-1. Clone the repo (`git clone git://github.com/drx/kiwi.git`) or [download the latest version](https://github.com/drx/kiwi/zipball/master).
-2. Run make.
+1. `git clone git://github.com/drx/kiwi.git` or [download the latest version](https://github.com/drx/kiwi/zipball/master)
+2. `$ brew install qt@4` (macOS)<br>`$ sudo apt-get install libqt4-dev` (Linux)
+2. `$ pip install PySide`
+2. `$ make`
 3. `$ ./kiwi.py`
 
 ## Requirements
 
-* clang/gcc, make, python
-* pyside
+* clang/gcc, make, Python 2.7
+* Qt 4, PySide
 
 ## Acknowledgements
 
