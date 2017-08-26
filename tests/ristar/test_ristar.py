@@ -1,7 +1,7 @@
 import hashlib
-import pytest
 import tempfile
 
+from PySide.QtCore import Qt
 from PySide.QtGui import QAction, QFileDialog
 
 
@@ -21,34 +21,64 @@ def get_bmp_sha1(filename):
         return bitmap_hash.hexdigest()
 
 
-def test_screenshot(qtbot, mock):
+def run_frames(display, n):
     """
-    Run Ristar for 7000 frames and check if the video output (screenshot) is correct.
+    Emulate n frames.
+    """
+    for i in range(n):
+        display.frame()
+
+
+def test_ristar(qtbot, mock):
+    """
+    Run Ristar.
+
+      - Run for 7000 frames.
+      - Select every zoom/render filter combo, run for 5 frames
+        and check if the video output (screenshot) is correct.
+      - Enable debug mode, press Start, check if the debug text is correct.
     """
     from kiwi import MainWindow, render_filters
     window = MainWindow()
     qtbot.addWidget(window)
 
-    window.display.set_zoom_level(QAction('1x', window))
+    display = window.display
+
+    display.set_zoom_level(QAction('1x', window))
     mock.patch.object(QFileDialog, 'getOpenFileName', return_value=('./tests/ristar/Ristar (UE) [!].zip', '*.zip'))
-    window.display.open_file()
+    display.open_file()
 
-    for i in range(7000):
-        window.display.frame()
+    run_frames(display, 7000)
 
-    assert window.display.frames == 7000
+    assert display.frames == 7000
 
     for scale_factor in ('1x', '2x', '3x', '4x'):
         for render_filter in render_filters:
-            window.display.set_zoom_level(QAction(scale_factor, window))
-            window.display.set_render_filter(QAction(render_filter, window))
+            display.set_zoom_level(QAction(scale_factor, window))
+            display.set_render_filter(QAction(render_filter, window))
 
-            for i in range(5):
-                window.display.frame()
+            run_frames(display, 5)
 
             filename_suffix = '-{}-{}.bmp'.format(scale_factor, render_filter.lower())
 
             _, filename = tempfile.mkstemp(suffix=filename_suffix)
-            window.display.save_screenshot(filename)
+            display.save_screenshot(filename)
 
             assert get_bmp_sha1(filename) == get_bmp_sha1('./tests/ristar/ristar-screenshot'+filename_suffix)
+
+    display.set_zoom_level(QAction('1x', window))
+    display.toggle_debug()
+
+    qtbot.keyPress(window, Qt.Key_Q)
+    run_frames(display, 50)
+    qtbot.keyRelease(window, Qt.Key_Q)
+
+    run_frames(display, 500)
+
+    debug_text = display.debug_label.text() + '\n'
+    _, _, debug_text = debug_text.partition('\n\n')
+
+    with open('./tests/ristar/debug-output.txt') as f:
+        expected_debug_text = f.read()
+
+    assert debug_text == expected_debug_text
