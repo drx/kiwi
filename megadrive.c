@@ -22,6 +22,10 @@ int cycle_counter = 0;
 
 void set_rom(unsigned char *buffer, size_t size)
 {
+    memset(ROM, 0, 0x400000);
+    memset(RAM, 0, 0x10000);
+    memset(ZRAM, 0, 0x2000);
+
     memcpy(ROM, buffer, size);
 }
 
