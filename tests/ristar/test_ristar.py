@@ -1,4 +1,5 @@
 import hashlib
+import pytest
 import tempfile
 
 from PySide.QtGui import QAction, QFileDialog
@@ -24,7 +25,7 @@ def test_screenshot(qtbot, mock):
     """
     Run Ristar for 7000 frames and check if the video output (screenshot) is correct.
     """
-    from kiwi import MainWindow
+    from kiwi import MainWindow, render_filters
     window = MainWindow()
     qtbot.addWidget(window)
 
@@ -37,7 +38,17 @@ def test_screenshot(qtbot, mock):
 
     assert window.display.frames == 7000
 
-    _, filename = tempfile.mkstemp(suffix='.bmp')
-    window.display.save_screenshot(filename)
+    for scale_factor in ('1x', '2x', '3x', '4x'):
+        for render_filter in render_filters:
+            window.display.set_zoom_level(QAction(scale_factor, window))
+            window.display.set_render_filter(QAction(render_filter, window))
 
-    assert get_bmp_sha1(filename) == get_bmp_sha1('./tests/ristar/ristar_screenshot.bmp')
+            for i in range(5):
+                window.display.frame()
+
+            filename_suffix = '-{}-{}.bmp'.format(scale_factor, render_filter.lower())
+
+            _, filename = tempfile.mkstemp(suffix=filename_suffix)
+            window.display.save_screenshot(filename)
+
+            assert get_bmp_sha1(filename) == get_bmp_sha1('./tests/ristar/ristar-screenshot'+filename_suffix)
