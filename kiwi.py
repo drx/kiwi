@@ -273,6 +273,8 @@ class Display(QWidget):
 
         image.save(filename)
 
+        return filename
+
     def show_fps(self):
         from itertools import islice
         values = []
