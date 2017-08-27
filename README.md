@@ -6,7 +6,11 @@ Kiwi is a simple Sega Genesis emulator.
 
 ### Quick start
 
-1. `git clone git://github.com/drx/kiwi.git` or [download the latest version](https://github.com/drx/kiwi/zipball/master)
+#### Binary 
+* [macOS app](https://github.com/drx/kiwi/releases/download/v0.1-alpha/kiwi-v0.1-alpha-macos.zip)
+
+#### Running from source 
+1. `$ git clone git://github.com/drx/kiwi.git` or [download the latest version](https://github.com/drx/kiwi/zipball/master)
 2. `$ brew install qt@4` (macOS)<br>`$ sudo apt-get install libqt4-dev` (Linux)
 2. `$ pip install PySide`
 2. `$ make`
@@ -27,3 +31,4 @@ Kiwi is a simple Sega Genesis emulator.
 * Kiwi was written in 2013, with some bugs fixed and tests added more recently.
 * There is no sound support. The Z80 processor is handled by dummy code. Some games do not work at all because of this.
 * Tested on Linux and macOS.
+* The bundled macOS doesn't work on some machines, in which case you have to run from source.
