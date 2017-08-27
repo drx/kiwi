@@ -1,4 +1,5 @@
 import hashlib
+import os
 import tempfile
 
 from PySide.QtCore import Qt
@@ -37,6 +38,8 @@ def test_ristar(qtbot, mock):
       - Select every zoom/render filter combo, run for 5 frames
         and check if the video output (screenshot) is correct.
       - Enable debug mode, press Start, check if the debug text is correct.
+      - Disable debug mode, take a screenshot and check if it was created.
+      
     """
     from kiwi import MainWindow, render_filters
     window = MainWindow()
@@ -82,3 +85,13 @@ def test_ristar(qtbot, mock):
         expected_debug_text = f.read()
 
     assert debug_text == expected_debug_text
+
+    display.toggle_debug()
+
+    run_frames(display, 50)
+
+    filename = display.save_screenshot()
+
+    assert os.path.isfile(filename)
+    assert 'screenshot' in filename
+    assert filename.endswith('.png')
