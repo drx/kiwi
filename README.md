@@ -1,4 +1,4 @@
-# Kiwi&nbsp;&nbsp;&nbsp;&nbsp;[![Travis](https://img.shields.io/travis/drx/kiwi.svg)](https://travis-ci.org/drx/kiwi) [![Coveralls](https://img.shields.io/coveralls/drx/kiwi.svg)](https://coveralls.io/github/drx/kiwi)
+# Kiwi&nbsp;&nbsp; [![Coveralls](https://img.shields.io/coveralls/drx/kiwi.svg)](https://coveralls.io/github/drx/kiwi)
 
 Kiwi is a simple Sega Genesis emulator.
 
